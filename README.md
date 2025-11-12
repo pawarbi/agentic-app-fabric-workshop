@@ -138,14 +138,15 @@ Edit the variables: Open the new .env file and fill in the values for the follow
 
 **AZURE_OPENAI_DEPLOYMENT**: The name of your chat model deployment (e.g., "gpt-5-mini"). This is the custom name you gave the model when you deployed it in Azure OpenAI Studio.
 
-**AZURE_OPENAI_EMBEDDING_DEPLOYMENT**: The name of your embedding model deployment (e.g., "text-embedding-ada-002").
+**AZURE_OPENAI_EMBEDDING_DEPLOYMENT**: text-embedding-ada-002 
+- -> **NOTE: you have to have text-embedding-ada-002 deployed for this demo since embeddings were generated using this model**
 
 ### 2. Install Backend Requirements (Flask API)
 In the root project directory run below commands:
 
 ```bash
-python3 -m venv venv
-.\venv\Scripts\activate # (on Windows)
+python3 -m venv venv # this creates the environment
+.\venv\Scripts\activate # (on Windows)  -- this Activates the environment
 pip install -r requirements.txt
 ```
 
@@ -167,7 +168,7 @@ Open two terninal windows.
 
 #### Terminal 1: Start Backend
 
-Run below
+Run below (**ensure you have your virtual environment activated for this!**  )
 
 ```bash
 python launcher.py
