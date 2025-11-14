@@ -8,10 +8,10 @@ interface ChatMessage {
 }
 
 interface ChatBotProps {
-  // The backend now handles all logic, so no props are needed
+  userId: string; // NEW: Accept userId as prop
 }
 
-const ChatBot: React.FC<ChatBotProps> = () => {
+const ChatBot: React.FC<ChatBotProps> = ({ userId }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
@@ -35,7 +35,7 @@ const ChatBot: React.FC<ChatBotProps> = () => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             title: `Chat Session ${new Date().toLocaleString()}`,
-            user_id: 'user_1' 
+            user_id: userId // Use the actual userId
           }),
         });
         
@@ -43,11 +43,10 @@ const ChatBot: React.FC<ChatBotProps> = () => {
           const data = await response.json();
           setSessionId(data.session_id);
           localStorage.setItem('chatSessionId', data.session_id);
-          console.log(`✅ New chat session created: ${data.session_id}`);
+          console.log(`✅ New chat session created: ${data.session_id} for user: ${userId}`);
         }
       } catch (error) {
         console.error("Failed to create session:", error);
-        // If session creation fails, generate a temporary one with timestamp
         const tempSessionId = `temp_session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         setSessionId(tempSessionId);
         localStorage.setItem('chatSessionId', tempSessionId);
@@ -55,9 +54,8 @@ const ChatBot: React.FC<ChatBotProps> = () => {
       }
     };
 
-    // Always create a new session, regardless of what's in localStorage
     createNewSession();
-  }, []); // Empty dependency array ensures this runs only once on mount
+  }, [userId]); // Recreate session when userId changes
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -72,14 +70,17 @@ const ChatBot: React.FC<ChatBotProps> = () => {
     setIsTyping(true);
 
     try {
-      // Send both messages and session_id to the backend
+      // Send messages, session_id, AND user_id to the backend
       const response = await fetch(`${API_URL}/chatbot`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-Id': userId // Include user_id in headers
+        },
         body: JSON.stringify({ 
           messages: newMessages,
           session_id: sessionId,
-          user_id: 'user_1'
+          user_id: userId // Include user_id in body
         }), 
       });
 
@@ -121,7 +122,7 @@ const ChatBot: React.FC<ChatBotProps> = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           title: `New Chat ${new Date().toLocaleString()}`,
-          user_id: 'user_1' 
+          user_id: userId
         }),
       });
       

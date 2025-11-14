@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 import json
 import time
+import traceback
 from dateutil.relativedelta import relativedelta
 # from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool
@@ -29,8 +30,14 @@ load_dotenv(override=True)
 
 app = Flask(__name__)
 CORS(app)
-global fixed_user_id
-fixed_user_id = get_user_id()  # For simplicity, using a fixed user ID
+
+def get_current_user_id():
+    """Get user_id from request headers or query params"""
+    user_id = request.headers.get('X-User-Id') or request.args.get('user_id')
+    if not user_id:
+        return 'user_5'  # Fallback to default demo user
+    return user_id
+
 
 # --- Azure OpenAI Configuration ---
 AZURE_OPENAI_KEY = os.getenv("AZURE_OPENAI_KEY")
@@ -209,9 +216,133 @@ def call_analytics_service(endpoint, method='POST', data=None):
         print(f"Analytics service call failed: {e}")
         return None
 
+# Add new user signup endpoint
+
+@app.route('/api/auth/signup', methods=['POST'])
+def signup():
+    """Create a new fake user with random data"""
+    try:
+        data = request.json
+        name = data.get('name', None)
+        
+        # Generate complete user data
+        from user_generator import generate_user_data
+        # Pass the optional name from the request to the generator
+        user_data = generate_user_data(name=name)
+        
+        # --- BEGIN DEBUG PRE-FLIGHT CHECK ---
+        print("\n\n[DEBUG] --- SIGNUP PRE-FLIGHT CHECK ---")
+        account_ids = {acc['id'] for acc in user_data['accounts']}
+        print(f"Generated {len(account_ids)} Account IDs: {account_ids}")
+        
+        orphan_txns = []
+        for i, txn in enumerate(user_data['transactions']):
+            from_id = txn.get('from_account_id')
+            to_id = txn.get('to_account_id')
+            
+            if from_id and from_id not in account_ids:
+                orphan_txns.append(f"Txn {i} (from_id): {from_id} --- NOT IN ACCOUNTS")
+            if to_id and to_id not in account_ids:
+                orphan_txns.append(f"Txn {i} (to_id): {to_id} --- NOT IN ACCOUNTS")
+
+        if orphan_txns:
+            print(f"\n[DEBUG] !!! FOUND {len(orphan_txns)} ORPHAN TRANSACTIONS !!!")
+            for orphan in orphan_txns:
+                print(f" - {orphan}")
+        else:
+            print("\n[DEBUG] --- All transaction account IDs are valid. ---")
+        print("[DEBUG] --- END CHECK ---\n\n")
+        # --- END DEBUG PRE-FLIGHT CHECK ---
+        
+        try:
+            # --- STEP 1: CREATE USER ---
+            print("[DEBUG] Attempting to add User...")
+            new_user = User(
+                id=user_data['user']['id'],
+                name=user_data['user']['name'],
+                email=user_data['user']['email'],
+                created_at=user_data['user']['created_at']
+            )
+            db.session.add(new_user)
+            print("[DEBUG] Attempting to commit User...")
+            db.session.commit()
+            print("[DEBUG] User committed successfully.")
+
+            # --- STEP 2: CREATE ACCOUNTS ---
+            print("[DEBUG] Attempting to add Accounts...")
+            for acc_data in user_data['accounts']:
+                new_account = Account(
+                    id=acc_data['id'],
+                    user_id=acc_data['user_id'],
+                    account_number=acc_data['account_number'],
+                    account_type=acc_data['account_type'],
+                    balance=acc_data['balance'],
+                    name=acc_data['name'],
+                    created_at=acc_data['created_at']
+                )
+                db.session.add(new_account)
+            print("[DEBUG] Attempting to commit Accounts...")
+            db.session.commit()
+            print("[DEBUG] Accounts committed successfully.")
+
+            # --- STEP 3: CREATE TRANSACTIONS ---
+            print("[DEBUG] Attempting to add Transactions...")
+            for txn_data in user_data['transactions']:
+                new_transaction = Transaction(
+                    id=txn_data['id'],
+                    from_account_id=txn_data['from_account_id'],
+                    to_account_id=txn_data['to_account_id'],
+                    amount=txn_data['amount'],
+                    type=txn_data['type'],
+                    description=txn_data['description'],
+                    category=txn_data['category'],
+                    status=txn_data['status'],
+                    created_at=txn_data['created_at']
+                )
+                db.session.add(new_transaction)
+            print("[DEBUG] Attempting to commit Transactions...")
+            db.session.commit()
+            print("[DEBUG] Transactions committed successfully.")
+
+        except Exception as e:
+            print(f"[DEBUG] ERROR during multi-step commit. Rolling back.")
+            db.session.rollback()
+            raise e # Re-raise the exception to be caught by the outer block
+        
+        return jsonify({
+            'status': 'success',
+            'user': {
+                'id': new_user.id,
+                'name': new_user.name,
+                'email': new_user.email
+            },
+            'accounts_created': len(user_data['accounts']),
+            'transactions_created': len(user_data['transactions'])
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        print("\n---!!!! ERROR DURING SIGNUP (OUTER CATCH) !!!! ---")
+        traceback.print_exc() # This will print the full error traceback
+        print("---!!!! -------------------- !!!! ---\n")
+        
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/auth/users', methods=['GET'])
+def get_users():
+    """Get list of all users for switching"""
+    try:
+        users = User.query.all()
+        return jsonify([{
+            'id': user.id,
+            'name': user.name,
+            'email': user.email
+        } for user in users])
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # AI Chatbot Tool Definitions (same as before)
-def get_user_accounts(user_id: str = fixed_user_id) -> str:
+def get_user_accounts(user_id: str) -> str:
     """Retrieves all accounts for a given user."""
     try:
         accounts = Account.query.filter_by(user_id=user_id).all()
@@ -224,7 +355,7 @@ def get_user_accounts(user_id: str = fixed_user_id) -> str:
     except Exception as e:
         return f"Error retrieving accounts: {str(e)}"
 
-def get_transactions_summary(user_id: str = fixed_user_id, time_period: str = 'this month', account_name: str = None) -> str:
+def get_transactions_summary(user_id: str, time_period: str = 'this month', account_name: str = None) -> str:
     """Provides a summary of the user's spending. Can be filtered by a time period and a specific account."""
     try:
         query = db.session.query(Transaction.category, db.func.sum(Transaction.amount).label('total_spent')).filter(
@@ -285,7 +416,7 @@ def search_support_documents(user_question: str) -> str:
         print(f"ERROR in search_support_documents: {e}")
         return "An error occurred while searching for support documents."
 
-def create_new_account(user_id: str = fixed_user_id, account_type: str = 'checking', name: str = None, balance: float = 0.0) -> str:
+def create_new_account(user_id: str, account_type: str = 'checking', name: str = None, balance: float = 0.0) -> str:
     """Creates a new bank account for the user."""
     if not name:
         return json.dumps({"status": "error", "message": "An account name is required."})
@@ -301,7 +432,7 @@ def create_new_account(user_id: str = fixed_user_id, account_type: str = 'checki
         db.session.rollback()
         return f"Error creating account: {str(e)}"
 
-def transfer_money(user_id: str = fixed_user_id, from_account_name: str = None, to_account_name: str = None, amount: float = 0.0, to_external_details: dict = None) -> str:
+def transfer_money(user_id: str, from_account_name: str = None, to_account_name: str = None, amount: float = 0.0, to_external_details: dict = None) -> str:
     """Transfers money between user's accounts or to an external account."""
     if not from_account_name or (not to_account_name and not to_external_details) or amount <= 0:
         return json.dumps({"status": "error", "message": "Missing required transfer details."})
@@ -336,7 +467,7 @@ def transfer_money(user_id: str = fixed_user_id, from_account_name: str = None, 
 # Banking API Routes
 @app.route('/api/accounts', methods=['GET', 'POST'])
 def handle_accounts():
-    user_id = fixed_user_id
+    user_id = get_current_user_id()
     if request.method == 'GET':
         accounts = Account.query.filter_by(user_id=user_id).all()
         return jsonify([acc.to_dict() for acc in accounts])
@@ -347,7 +478,7 @@ def handle_accounts():
     
 @app.route('/api/transactions', methods=['GET', 'POST'])
 def handle_transactions():
-    user_id = fixed_user_id
+    user_id = get_current_user_id()
     if request.method == 'GET':
         accounts = Account.query.filter_by(user_id=user_id).all()
         account_ids = [acc.id for acc in accounts]
@@ -371,7 +502,7 @@ def chatbot():
     data = request.json
     messages = data.get("messages", [])
     session_id = data.get("session_id")
-    user_id = fixed_user_id
+    user_id = data.get("user_id") or get_current_user_id()  # Get from request body or headers
     
     # Fetch chat history from the analytics service
     history_data = call_analytics_service(f"chat/history/{session_id}", method='GET')
@@ -379,9 +510,9 @@ def chatbot():
     # Reconstruct messages and session memory
     session_memory, historical_messages = reconstruct_messages_from_history(history_data)
 
-    
     # Print debugging info
     print("\n--- Context being passed to the agent ---")
+    print(f"Current User ID: {user_id}")
     print(f"History data received: {len(history_data) if history_data else 0} messages")
     print(f"Historical messages reconstructed: {len(historical_messages)}")
     for i, msg in enumerate(historical_messages):
@@ -391,14 +522,35 @@ def chatbot():
     # Extract current user message
     user_message = messages[-1].get("content", "")
     
-    # Updated tools list - now includes query_database
+    # Create wrapper functions that bind user_id
+    # This is the key fix - we create proper named functions instead of using partial
+    def get_user_accounts_for_current_user() -> str:
+        """Retrieves all accounts for the current user."""
+        return get_user_accounts(user_id=user_id)
+    
+    def get_transactions_summary_for_current_user(time_period: str = 'this month', account_name: str = None) -> str:
+        """Provides a summary of the current user's spending."""
+        return get_transactions_summary(user_id=user_id, time_period=time_period, account_name=account_name)
+    
+    def create_new_account_for_current_user(account_type: str = 'checking', name: str = None, balance: float = 0.0) -> str:
+        """Creates a new bank account for the current user."""
+        return create_new_account(user_id=user_id, account_type=account_type, name=name, balance=balance)
+    
+    def transfer_money_for_current_user(from_account_name: str = None, to_account_name: str = None, 
+                                        amount: float = 0.0, to_external_details: dict = None) -> str:
+        """Transfers money between current user's accounts or to an external account."""
+        return transfer_money(user_id=user_id, from_account_name=from_account_name, 
+                            to_account_name=to_account_name, amount=amount, 
+                            to_external_details=to_external_details)
+    
+    # Tools list with properly named wrapper functions
     tools = [
-        get_user_accounts, 
-        get_transactions_summary,
+        get_user_accounts_for_current_user,
+        get_transactions_summary_for_current_user,
         search_support_documents, 
-        create_new_account,
-        transfer_money,
-        query_database  # NEW TOOL for direct database queries
+        create_new_account_for_current_user,
+        transfer_money_for_current_user,
+        query_database
     ]
 
     # Initialize banking agent with enhanced prompt
@@ -406,8 +558,11 @@ def chatbot():
         model=ai_client,
         tools=tools,
         checkpointer=session_memory,
-        prompt="""
+        prompt=f"""
         You are a customer support agent for a banking application.
+        
+        **IMPORTANT: You are currently helping user_id: {user_id}**
+        All operations must be performed for this user only.
         
         You have access to the following capabilities:
         1. Standard banking operations (get_user_accounts, get_transactions_summary, transfer_money, create_new_account)
@@ -420,7 +575,7 @@ def chatbot():
         - When using `query_database`, you must first use the 'describe' action to see the table structure.
         
         ## Database Rules ##
-        - You must only access data for the user_id 'user_5'.
+        - You must only access data for the user_id '{user_id}'.
         - **CRITICAL SQL FIX:** The `datetimeoffset` column type (like 'created_at') will fail. You **MUST** `CAST` it to a string in all SELECT or ORDER BY clauses (e.g., `CAST(created_at AS VARCHAR(30)) AS created_at_str`).
         
         ## Response Formatting ##

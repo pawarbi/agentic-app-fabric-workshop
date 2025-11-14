@@ -4,7 +4,8 @@ This bypasses MCP complexity and directly uses the database tools
 """
 import json
 import pyodbc
-import re  # <-- ADD THIS IMPORT
+import re
+from decimal import Decimal  # <-- ADD THIS IMPORT
 from shared.connection_manager import connection_manager
 
 class DirectDatabaseTools:
@@ -108,10 +109,8 @@ class DirectDatabaseTools:
                     "message": "Only SELECT queries are allowed."
                 }
             
-            # --- START OF MODIFIED SECTION ---
             # Check for dangerous keywords
             dangerous = ["DROP", "DELETE", "INSERT", "UPDATE", "ALTER", "CREATE", "TRUNCATE"]
-            # Split query into potential tokens to avoid partial matches (like 'created_at' matching 'CREATE')
             tokens = set(re.split(r'[\s\n\t;()]', query_upper))
             for keyword in dangerous:
                 if keyword in tokens:
@@ -119,7 +118,6 @@ class DirectDatabaseTools:
                         "status": "error",
                         "message": f"Query contains prohibited keyword: {keyword}"
                     }
-            # --- END OF MODIFIED SECTION ---
             
             # Enforce limit
             limit = min(max(1, limit), 1000)
@@ -144,8 +142,10 @@ class DirectDatabaseTools:
                 row_dict = {}
                 for idx, col_name in enumerate(columns):
                     value = row[idx]
-                    if hasattr(value, 'isoformat'):
+                    if hasattr(value, 'isoformat'):  # Handle datetimes
                         value = value.isoformat()
+                    elif isinstance(value, Decimal): # <-- ADD THIS BLOCK
+                        value = str(value)           # <-- TO HANDLE DECIMALS
                     row_dict[col_name] = value
                 rows.append(row_dict)
             
