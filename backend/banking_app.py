@@ -8,7 +8,7 @@ from dateutil.relativedelta import relativedelta
 # from sqlalchemy import create_engine
 from sqlalchemy.pool import QueuePool
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
@@ -28,7 +28,7 @@ from tools.database_query import query_database
 import os
 load_dotenv(override=True)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", static_url_path="/")
 CORS(app)
 
 def get_current_user_id():
@@ -630,3 +630,27 @@ def initialize_banking_app():
     with app.app_context():
         db.create_all()
         print("[Banking Service] Database tables initialized")
+
+# ---------- Frontend (React) routes ----------
+
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_frontend(path):
+    """
+    Serve the React frontend.
+
+    - If the requested path matches a file in the static folder (e.g. JS, CSS), serve that.
+    - Otherwise, serve index.html so React Router can handle the route.
+    """
+    # If the request is for an API route, let other handlers deal with it
+    if path.startswith("api") or path.startswith("analytics"):
+        return jsonify({"error": "Not found"}), 404
+
+    static_folder = app.static_folder  # "static"
+    full_path = os.path.join(static_folder, path)
+
+    if path != "" and os.path.exists(full_path):
+        return send_from_directory(static_folder, path)
+    else:
+        # Fallback: always serve index.html
+        return send_from_directory(static_folder, "index.html")
