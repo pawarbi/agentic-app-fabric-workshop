@@ -7,7 +7,8 @@ interface SignUpModalProps {
   onClose: () => void;
 }
 
-const API_URL = 'http://127.0.0.1:5001/api';
+// Use same-origin API base so it works on Azure and locally (when proxied)
+const API_URL = '/api';
 
 const SignUpModal: React.FC<SignUpModalProps> = ({ isOpen, onClose }) => {
   const [name, setName] = useState('');
@@ -38,13 +39,8 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ isOpen, onClose }) => {
       const data = await response.json();
       
       if (data.status === 'success') {
-        // Set the new user as current user
         setCurrentUser(data.user);
-        
-        // Show success message
         alert(`Welcome ${data.user.name}! Your account has been created with ${data.accounts_created} accounts and ${data.transactions_created} sample transactions.`);
-        
-        // Close modal and reload page
         onClose();
         window.location.reload();
       } else {
@@ -120,7 +116,6 @@ const SignUpModal: React.FC<SignUpModalProps> = ({ isOpen, onClose }) => {
               disabled={isLoading}
               className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-3 rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 flex items-center justify-center gap-2 font-medium transition"
             >
-              
               {isLoading ? (
                 <>
                   <Loader className="h-5 w-5 animate-spin" />
