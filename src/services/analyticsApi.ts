@@ -7,7 +7,7 @@ import type {
 } from '../types/analytics';
 
 // Analytics API runs on port 5002
-const ANALYTICS_API_URL = 'http://127.0.0.1:5002/api';
+const ANALYTICS_API_URL = '/analytics/api';
 
 export class AnalyticsAPI {
   // Chat Sessions
