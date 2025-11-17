@@ -406,8 +406,28 @@ def search_support_documents(user_question: str) -> str:
     if not vector_store:
         return "The vector store is not configured."
     try:
-        results = vector_store.similarity_search_with_score(user_question, k=3)
-        relevant_docs = [doc.page_content for doc, score in results if score < 0.5]
+        # Basic transient retry for dropped connections
+        max_attempts = 3
+        last_err = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                results = vector_store.similarity_search_with_score(user_question, k=3)
+                break
+            except Exception as e:
+                last_err = e
+                err_str = str(e)
+                # Only retry on connection-related errors
+                if "08S01" in err_str or "TCP Provider" in err_str or "connection" in err_str.lower():
+                    print(f"WARNING: search_support_documents transient error on attempt {attempt}: {e}")
+                    continue
+                else:
+                    raise
+        else:
+            # All attempts failed
+            print(f"ERROR in search_support_documents after {max_attempts} attempts: {last_err}")
+            return "An error occurred while searching for support documents."
+
+        relevant_docs = [doc.page_content for doc, score in results]
         print("-------------> ", relevant_docs)
         if not relevant_docs:
             return "No relevant support documents found to answer this question."
