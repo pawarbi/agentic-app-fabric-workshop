@@ -1,64 +1,56 @@
-import pyodbc
-from shared.connection_manager import connection_manager
 import os
+import sqlalchemy
+from sqlalchemy import text
 
-def check_and_ingest_data():
-    """Check if data exists in the DB, if not, ingest it from the SQL script."""
-    conn = None
-    cursor = None
+# ... existing imports and code ...
+
+def get_ingest_sql_path() -> str:
+    """
+    Resolve the path to Data_Ingest/ingest_data.sql in a way that works
+    both locally and on Azure Web App.
+
+    Assumes repository layout:
+      <repo_root>/
+        backend/init_data.py
+        Data_Ingest/ingest_data.sql
+    """
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    # repo root = parent of the directory that contains init_data.py
+    repo_root = os.path.abspath(os.path.join(current_dir, ".."))
+    candidate = os.path.join(repo_root, "Data_Ingest", "ingest_data.sql")
+
+    print(f"[init_data] Looking for ingest SQL at: {candidate}")
+    if not os.path.exists(candidate):
+        raise FileNotFoundError(
+            f"SQL ingest file not found at {candidate}. "
+            "Ensure Data_Ingest/ingest_data.sql is deployed alongside backend/."
+        )
+    return candidate
+
+
+def ingest_initial_data(engine: sqlalchemy.engine.Engine):
+    """
+    Run the ingest_data.sql script against the target database if needed.
+    """
     try:
-        # Use the shared connection manager
-        conn = connection_manager.create_connection()
-        cursor = conn.cursor()
-        
-        print("[0] Checking database for existing data...")
-        try:
-            # 1. Check if data exists in a key table
-            cursor.execute("SELECT COUNT(*) FROM dbo.PDF_RawChunks")
-            count = cursor.fetchone()[0]
-        except pyodbc.Error as e:
-            # This likely means the table doesn't exist yet
-            print(f"    Info: Could not check table (may not exist yet). Proceeding with ingestion.")
-            count = 0 
-        
-        if count > 0:
-            print(f"    Data ({count} rows) found in PDF_RawChunks. Skipping ingestion.")
-            return
+        ingest_sql_path = get_ingest_sql_path()
+        print(f"[init_data] Using ingest script: {ingest_sql_path}")
 
-        # 2. If no data, run ingest script
-        print("    No data found. Starting data ingestion...")
-        # Path is relative to this launcher.py file
-        sql_file_path = os.path.join(os.path.dirname(__file__), '..', 'Data_Ingest', 'ingest_data.sql')
-        
-        with open(sql_file_path, 'r', encoding='utf-8') as f:
+        with open(ingest_sql_path, "r", encoding="utf-8") as f:
             sql_script = f.read()
-        
-        # Split the script by "GO" statements (which pyodbc doesn't run in one go)
-        sql_commands = sql_script.split('GO')
-        
-        for command in sql_commands:
-            command = command.strip()
-            if command:
-                try:
-                    cursor.execute(command)
-                except pyodbc.Error as ex:
-                    # Print errors but continue (e.g., "DROP TABLE" if not exists might fail)
-                    print(f"    Warning executing command: {ex}")
-        
-        conn.commit()
-        print("    Database ingestion complete!")
 
-    except pyodbc.Error as ex:
-        print(f"    DATABASE ERROR during ingestion: {ex}")
-        if conn:
-            conn.rollback()
-    except FileNotFoundError:
-        print(f"    FATAL ERROR: SQL ingest file not found at {sql_file_path}")
+        with engine.begin() as conn:
+            # If the script contains multiple statements, use .exec_driver_sql
+            conn.exec_driver_sql(sql_script)
+        print("[init_data] Data ingestion completed successfully.")
+    except FileNotFoundError as e:
+        # Keep the error loud so you notice in logs, but don't crash the app
+        print(f"[init_data] FATAL ERROR: {e}")
+        # Decide whether to re-raise or not; if you want the app to still run:
+        # return
+        raise
     except Exception as e:
-        print(f"    An unexpected error occurred during data check/ingestion: {e}")
-        if conn:
-            conn.rollback()
-    finally:
-        if cursor:
-            cursor.close()
-        # Don't close the connection - let the connection manager handle it
+        print(f"[init_data] ERROR during data ingestion: {e}")
+        raise
+
+# existing check_and_ingest_data() should call ingest_initial_data(engine)

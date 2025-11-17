@@ -13,8 +13,7 @@ import ChatSessions from './components/ChatSessions';
 import ToolAnalytics from './components/ToolAnalytics';
 
 import type { Account, Transaction } from './types/banking';
-
-const API_URL = '/api';
+import { API_URL } from './apiConfig';  // <-- NEW
 
 function AppContent() {
   const [activeTab, setActiveTab] = useState('dashboard');

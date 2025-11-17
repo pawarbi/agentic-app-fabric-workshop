@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { X, UserPlus, Loader } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
+import { API_URL } from '../apiConfig';  // <-- NEW
 
 interface SignUpModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-// Use same-origin API base so it works on Azure and locally (when proxied)
-const API_URL = '/api';
 
 const SignUpModal: React.FC<SignUpModalProps> = ({ isOpen, onClose }) => {
   const [name, setName] = useState('');

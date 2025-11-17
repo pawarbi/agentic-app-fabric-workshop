@@ -49,16 +49,30 @@ jobs:
 
       # (Optional) add tests here
 
-      # --- Package backend for deployment ---
-      - name: Archive backend
+      # --- Prepare deploy folder (backend + Data_Ingest) ---
+      - name: Prepare deploy folder
         run: |
-          cd backend
-          zip -r ../backend.zip .
+          rm -rf deploy
+          mkdir deploy
+          # copy backend contents
+          cp -R backend/* deploy/
+          # copy Data_Ingest into deploy root so it sits next to init_data.py
+          if [ -d "Data_Ingest" ]; then
+            cp -R Data_Ingest deploy/Data_Ingest
+          else
+            echo "WARNING: Data_Ingest directory not found at repo root"
+          fi
+
+      # --- Package app for deployment ---
+      - name: Archive app
+        run: |
+          cd deploy
+          zip -r ../app.zip .
 
       # --- Deploy using publish profile ---
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          package: backend.zip
+          package: app.zip
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_FB9A8E4794E442F5B258BE260CCFDDBA }}
