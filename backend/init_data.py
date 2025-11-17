@@ -2,8 +2,6 @@ import os
 import sqlalchemy
 from sqlalchemy import text
 
-# ... existing imports and code ...
-
 def get_ingest_sql_path() -> str:
     """
     Resolve the path to Data_Ingest/ingest_data.sql in a way that works
@@ -44,13 +42,22 @@ def ingest_initial_data(engine: sqlalchemy.engine.Engine):
             conn.exec_driver_sql(sql_script)
         print("[init_data] Data ingestion completed successfully.")
     except FileNotFoundError as e:
-        # Keep the error loud so you notice in logs, but don't crash the app
+        # Keep the error loud so you notice in logs
         print(f"[init_data] FATAL ERROR: {e}")
-        # Decide whether to re-raise or not; if you want the app to still run:
-        # return
         raise
     except Exception as e:
         print(f"[init_data] ERROR during data ingestion: {e}")
         raise
 
-# existing check_and_ingest_data() should call ingest_initial_data(engine)
+
+def check_and_ingest_data(engine: sqlalchemy.engine.Engine):
+    """
+    Backwards-compatible entry point used by banking_app.py.
+
+    You can extend this to:
+      - Check if data already exists
+      - Only run ingest_initial_data(engine) when needed
+    For now, always run ingest_initial_data to ensure the demo data is present.
+    """
+    print("[init_data] check_and_ingest_data called")
+    ingest_initial_data(engine)
