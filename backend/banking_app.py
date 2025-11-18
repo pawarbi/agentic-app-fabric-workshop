@@ -45,8 +45,14 @@ AZURE_OPENAI_ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 AZURE_OPENAI_DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 AZURE_OPENAI_EMBEDDING_DEPLOYMENT = os.getenv("AZURE_OPENAI_EMBEDDING_DEPLOYMENT")
 
-# Analytics service URL
-ANALYTICS_SERVICE_URL = os.getenv("ANALYTICS_SERVICE_URL", "/analytics")
+# Auto-detect environment for analytics service URL
+# Local: http://127.0.0.1:5002
+# Azure: /analytics (relative URL)
+IS_LOCAL = not os.getenv("WEBSITE_SITE_NAME")  # Azure App Service sets this
+ANALYTICS_SERVICE_URL = os.getenv(
+    "ANALYTICS_SERVICE_URL",
+    "http://127.0.0.1:5002" if IS_LOCAL else "/analytics"
+)
 
 if not all([AZURE_OPENAI_KEY, AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_DEPLOYMENT, AZURE_OPENAI_EMBEDDING_DEPLOYMENT]):
     print("⚠️  Warning: One or more Azure OpenAI environment variables are not set.")

@@ -6,24 +6,25 @@ def get_ingest_sql_path() -> str:
     """
     Resolve the path to Data_Ingest/ingest_data.sql in a way that works
     both locally and on Azure Web App.
-
-    Assumes repository layout:
-      <repo_root>/
-        backend/init_data.py
-        Data_Ingest/ingest_data.sql
     """
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    # repo root = parent of the directory that contains init_data.py
     repo_root = os.path.abspath(os.path.join(current_dir, ".."))
-    candidate = os.path.join(repo_root, "Data_Ingest", "ingest_data.sql")
-
-    print(f"[init_data] Looking for ingest SQL at: {candidate}")
-    if not os.path.exists(candidate):
-        raise FileNotFoundError(
-            f"SQL ingest file not found at {candidate}. "
-            "Ensure Data_Ingest/ingest_data.sql is deployed alongside backend/."
-        )
-    return candidate
+    
+    # Try multiple possible locations
+    candidates = [
+        os.path.join(repo_root, "Data_Ingest", "ingest_data.sql"),
+        os.path.join(repo_root, "data_ingest", "ingest_data.sql"),
+        os.path.join(repo_root, "backend", "Data_Ingest", "ingest_data.sql"),
+    ]
+    
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            print(f"[init_data] Found ingest SQL at: {candidate}")
+            return candidate
+    
+    raise FileNotFoundError(
+        f"SQL ingest file not found. Tried: {candidates}"
+    )
 
 
 def ingest_initial_data(engine: sqlalchemy.engine.Engine):

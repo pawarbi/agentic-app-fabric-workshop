@@ -10,12 +10,14 @@
 //   - Banking API:    /api
 //   - Analytics API:  /analytics/api
 
-export const API_URL =
-  import.meta.env.DEV
-    ? 'http://127.0.0.1:5001/api'
-    : '/api';
+const IS_LOCAL = import.meta.env.DEV || 
+                 window.location.hostname === 'localhost' || 
+                 window.location.hostname === '127.0.0.1';
 
-export const ANALYTICS_API_URL =
-  import.meta.env.DEV
-    ? 'http://127.0.0.1:5002/api'
-    : '/analytics/api';
+export const API_URL = IS_LOCAL
+  ? 'http://127.0.0.1:5001/api'
+  : '/api';
+
+export const ANALYTICS_API_URL = IS_LOCAL
+  ? 'http://127.0.0.1:5002/api'
+  : '/analytics/api';
