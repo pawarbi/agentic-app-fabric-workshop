@@ -18,12 +18,12 @@ from langchain_sqlserver import SQLServer_VectorStore
 from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
 from langgraph.store.memory import InMemoryStore
 from shared.connection_manager import sqlalchemy_connection_creator, connection_manager
-from shared.utils import get_user_id
+from shared.utils import get_user_id, _serialize_messages
 import requests  # For calling analytics service
 from langgraph.prebuilt import create_react_agent
-from shared.utils import _serialize_messages
 from init_data import check_and_ingest_data
 from tools.database_query import query_database
+
 # Load Environment variables and initialize app
 import os
 load_dotenv(override=True)
@@ -40,17 +40,17 @@ if not AZURE_OPENAI_KEY or not AZURE_OPENAI_ENDPOINT or not AZURE_OPENAI_DEPLOYM
     raise ValueError("Missing one or more required Azure OpenAI environment variables")
 
 ai_client = AzureChatOpenAI(
-        azure_endpoint=AZURE_OPENAI_ENDPOINT,
-        api_version="2024-10-21",
-        api_key=AZURE_OPENAI_KEY,
-        azure_deployment=AZURE_OPENAI_DEPLOYMENT 
-    )
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    api_version="2024-10-21",
+    api_key=AZURE_OPENAI_KEY,
+    azure_deployment=AZURE_OPENAI_DEPLOYMENT
+)
 embeddings_client = AzureOpenAIEmbeddings(
-        azure_deployment=AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
-        openai_api_version="2024-10-21",
-        azure_endpoint=AZURE_OPENAI_ENDPOINT,
-        api_key=AZURE_OPENAI_KEY,
-    )
+    azure_deployment=AZURE_OPENAI_EMBEDDING_DEPLOYMENT,
+    openai_api_version="2024-10-21",
+    azure_endpoint=AZURE_OPENAI_ENDPOINT,
+    api_key=AZURE_OPENAI_KEY,
+)
 
 # Database configuration for Azure SQL (banking data)
 app.config['SQLALCHEMY_DATABASE_URI'] = "mssql+pyodbc://"
@@ -72,9 +72,43 @@ from chat_data_model import init_chat_db
 init_chat_db(db)
 from chat_data_model import ChatHistoryManager
 
+# -----------------------
+# Helper functions
+# -----------------------
+def get_db_connection():
+    """Get a raw DB connection from the connection manager."""
+    return connection_manager.create_connection()
+
 # Initialize vector store for knowledge base (support docs)
-from shared.connection_manager import build_connection_string
-connection_url = build_connection_string()
+# Reconstruct the connection string using the connection manager’s config
+def _build_connection_string_from_env() -> str:
+    """
+    Build a SQLAlchemy-style connection string from the same environment
+    variables that connection_manager uses.
+    """
+    driver = os.getenv("FABRIC_ODBC_DRIVER") or os.getenv("ODBC_DRIVER", "ODBC Driver 18 for SQL Server")
+    server = os.getenv("FABRIC_SQL_SERVER") or os.getenv("SQL_SERVER")
+    database = os.getenv("FABRIC_SQL_DATABASE") or os.getenv("SQL_DATABASE")
+    user = os.getenv("FABRIC_SQL_USER") or os.getenv("SQL_USER")
+    password = os.getenv("FABRIC_SQL_PASSWORD") or os.getenv("SQL_PASSWORD")
+
+    if not all([server, database, user, password]):
+        raise ValueError("Missing one or more SQL connection environment variables")
+
+    # Typical pyodbc connection string – adjust if your connection_manager expects different details
+    return (
+        f"mssql+pyodbc:///?odbc_connect="
+        f"DRIVER={{{driver}}};"
+        f"SERVER={server};"
+        f"DATABASE={database};"
+        f"UID={user};"
+        f"PWD={password};"
+        f"Encrypt=yes;"
+        f"TrustServerCertificate=no;"
+        f"Connection Timeout=30;"
+    )
+
+connection_url = _build_connection_string_from_env()
 
 vector_store = SQLServer_VectorStore(
     connection_string=connection_url,
@@ -86,13 +120,6 @@ vector_store = SQLServer_VectorStore(
 
 # Run data ingestion check (ensures DB has demo data)
 check_and_ingest_data(connection_url, embeddings_client)
-
-# -----------------------
-# Helper functions
-# -----------------------
-def get_db_connection():
-    """Get a raw DB connection from the connection manager."""
-    return connection_manager.create_connection()
 
 def get_user_accounts(user_id: str) -> dict:
     """Get all accounts for a user."""
@@ -406,16 +433,14 @@ def transfer_money_for_current_user(from_account_name: str = None, to_account_na
 # -----------------------
 # Canonical tool wrappers (Option A)
 # -----------------------
-# IMPORTANT:
 # These are the functions that are exposed as tools to the agent.
-# Their names MUST match the entries in initialize_tool_definitions()
-# so that ToolDefinition and ToolUsage work correctly.
+# Their names MUST match initialize_tool_definitions() entries.
 
-def get_user_accounts() -> dict:
+def get_user_accounts_tool() -> dict:
     """Canonical tool: retrieves all accounts for the current user."""
     return get_user_accounts_for_current_user()
 
-def get_transactions_summary(time_period: str = None, account_name: str = None) -> dict:
+def get_transactions_summary_tool(time_period: str = None, account_name: str = None) -> dict:
     """Canonical tool: provides spending summary with time period and account filters for the current user."""
     return get_transactions_summary_for_current_user(
         time_period=time_period,
@@ -440,16 +465,9 @@ def transfer_money_tool(from_account_name: str = None, to_account_name: str = No
         to_external_details=to_external_details,
     )
 
-# NOTE:
-# LangGraph / LangChain derive tool names from the function __name__.
-# To ensure the tool names are exactly:
-#   - get_user_accounts
-#   - get_transactions_summary
-#   - create_new_account
-#   - transfer_money
-#   - search_support_documents
-#   - query_database
-# we explicitly set __name__ for the canonical wrappers that had "_tool" suffix.
+# Force canonical tool names to match ToolDefinition names
+get_user_accounts_tool.__name__ = "get_user_accounts"
+get_transactions_summary_tool.__name__ = "get_transactions_summary"
 create_new_account_tool.__name__ = "create_new_account"
 transfer_money_tool.__name__ = "transfer_money"
 
@@ -473,17 +491,22 @@ def chat():
         store = InMemoryStore()
         session_memory = {"configurable": {"thread_id": session_id}}
 
-        # Last user message used for prompt context if needed
-        user_message = messages[-1].get("content", "") if messages else ""
+        # Build LangGraph messages from frontend messages
+        lg_messages = []
+        for msg in messages:
+            if msg["role"] == "user":
+                lg_messages.append(HumanMessage(content=msg["content"]))
+            elif msg["role"] == "assistant":
+                lg_messages.append(AIMessage(content=msg["content"]))
 
-        # Tools list with CANONICAL names (Option A)
+        # Tools list with canonical names (Option A)
         tools = [
-            get_user_accounts,           # name: "get_user_accounts"
-            get_transactions_summary,    # name: "get_transactions_summary"
-            search_support_documents,    # name: "search_support_documents"
-            create_new_account_tool,     # name: "create_new_account"
-            transfer_money_tool,         # name: "transfer_money"
-            query_database,              # name: "query_database"
+            get_user_accounts_tool,           # name: "get_user_accounts"
+            get_transactions_summary_tool,    # name: "get_transactions_summary"
+            search_support_documents,         # name: "search_support_documents"
+            create_new_account_tool,          # name: "create_new_account"
+            transfer_money_tool,              # name: "transfer_money"
+            query_database,                   # name: "query_database"
         ]
 
         # Initialize banking agent with enhanced prompt
@@ -516,21 +539,13 @@ def chat():
             """
         )
 
-        # Build LangGraph messages from frontend messages
-        lg_messages = []
-        for msg in messages:
-            if msg["role"] == "user":
-                lg_messages.append(HumanMessage(content=msg["content"]))
-            elif msg["role"] == "assistant":
-                lg_messages.append(AIMessage(content=msg["content"]))
-
         # Run the agent
         trace_start = time.time()
         result = banking_agent.invoke(
             {"messages": lg_messages},
             config=session_memory,
         )
-        trace_duration = int((trace_start - time.time()) * 1000) * -1
+        trace_duration = int((time.time() - trace_start) * 1000)
 
         # Serialize messages for analytics
         serialized_messages = _serialize_messages(result["messages"])
