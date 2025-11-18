@@ -88,7 +88,6 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 connection_string = os.getenv('FABRIC_SQL_CONNECTION_URL_AGENTIC')
-
 connection_url = f"mssql+pyodbc:///?odbc_connect={connection_string}"
 
 vector_store = None
@@ -100,6 +99,9 @@ if embeddings_client:
         embedding_length=1536,
         distance_strategy=DistanceStrategy.COSINE,
     )
+
+# In-memory store for LangGraph
+store = InMemoryStore()
 
 def to_dict_helper(instance):
     d = {}
@@ -212,14 +214,19 @@ class Transaction(db.Model):
 def call_analytics_service(endpoint, method='POST', data=None):
     """Helper function to call analytics service"""
     try:
+        call_start = time.time()
         # If ANALYTICS_SERVICE_URL is relative (e.g. '/analytics'),
         # requests will need the full host in Azure. For simplicity:
         base = ANALYTICS_SERVICE_URL.rstrip('/')
         url = f"{base}/api/{endpoint.lstrip('/')}"
+        print(f"[analytics] Calling {method} {url}")
         if method == 'POST':
             response = requests.post(url, json=data, timeout=30)
         else:
             response = requests.get(url, timeout=15)
+        call_duration = time.time() - call_start
+        print(f"[analytics] Call to {url} completed in {call_duration:.2f}s "
+              f"with status {getattr(response, 'status_code', 'N/A')}")
         return response.json() if response.status_code < 400 else None
     except Exception as e:
         print(f"Analytics service call failed: {e}")
@@ -530,140 +537,182 @@ def handle_transactions():
 
 @app.route('/api/chatbot', methods=['POST'])
 def chatbot():
+    """Main chatbot endpoint"""
+    request_start = time.time()
+    print("\n========== /api/chatbot request started ==========")
+
     if not ai_client:
+        print("[chatbot] Azure OpenAI client is not configured.")
         return jsonify({"error": "Azure OpenAI client is not configured."}), 503
 
-    data = request.json
-    messages = data.get("messages", [])
-    session_id = data.get("session_id")
-    user_id = data.get("user_id") or get_current_user_id()  # Get from request body or headers
-    
-    # Fetch chat history from the analytics service
-    history_data = call_analytics_service(f"chat/history/{session_id}", method='GET')
-    
-    # Reconstruct messages and session memory
-    session_memory, historical_messages = reconstruct_messages_from_history(history_data)
-
-    # Print debugging info
-    print("\n--- Context being passed to the agent ---")
-    print(f"Current User ID: {user_id}")
-    print(f"History data received: {len(history_data) if history_data else 0} messages")
-    print(f"Historical messages reconstructed: {len(historical_messages)}")
-    for i, msg in enumerate(historical_messages):
-        print(f"  {i+1}. [{msg.__class__.__name__}] {msg.content[:50]}...")
-    print("-----------------------------------------\n")
-
-    # Extract current user message
-    user_message = messages[-1].get("content", "")
-    
-    # Create wrapper functions that bind user_id
-    # This is the key fix - we create proper named functions instead of using partial
-    def get_user_accounts_for_current_user() -> str:
-        """Retrieves all accounts for the current user."""
-        return get_user_accounts(user_id=user_id)
-    
-    def get_transactions_summary_for_current_user(time_period: str = 'this month', account_name: str = None) -> str:
-        """Provides a summary of the current user's spending."""
-        return get_transactions_summary(user_id=user_id, time_period=time_period, account_name=account_name)
-    
-    def create_new_account_for_current_user(account_type: str = 'checking', name: str = None, balance: float = 0.0) -> str:
-        """Creates a new bank account for the current user."""
-        return create_new_account(user_id=user_id, account_type=account_type, name=name, balance=balance)
-    
-    def transfer_money_for_current_user(from_account_name: str = None, to_account_name: str = None, 
-                                        amount: float = 0.0, to_external_details: dict = None) -> str:
-        """Transfers money between current user's accounts or to an external account."""
-        return transfer_money(user_id=user_id, from_account_name=from_account_name, 
-                            to_account_name=to_account_name, amount=amount, 
-                            to_external_details=to_external_details)
-    
-    # Tools list with properly named wrapper functions
-    tools = [
-        get_user_accounts_for_current_user,
-        get_transactions_summary_for_current_user,
-        search_support_documents, 
-        create_new_account_for_current_user,
-        transfer_money_for_current_user,
-        query_database
-    ]
-
-    # Initialize banking agent with enhanced prompt
-    banking_agent = create_react_agent(
-        model=ai_client,
-        tools=tools,
-        checkpointer=session_memory,
-        prompt=f"""
-        You are a customer support agent for a banking application.
+    try:
+        parse_start = time.time()
+        data = request.json
+        messages = data.get("messages", [])
+        session_id = data.get("session_id")
+        user_id = data.get("user_id") or get_current_user_id()  # Get from request body or headers
+        parse_duration = time.time() - parse_start
+        print(f"[chatbot] Parsed request in {parse_duration:.2f}s "
+              f"(session_id={session_id}, user_id={user_id})")
         
-        **IMPORTANT: You are currently helping user_id: {user_id}**
-        All operations must be performed for this user only.
+        # Fetch chat history from the analytics service
+        history_start = time.time()
+        history_data = call_analytics_service(f"chat/history/{session_id}", method='GET')
+        history_duration = time.time() - history_start
+        print(f"[chatbot] History fetch duration: {history_duration:.2f}s "
+              f"(has_history={bool(history_data)})")
         
-        You have access to the following capabilities:
-        1. Standard banking operations (get_user_accounts, get_transactions_summary, transfer_money, create_new_account)
-        2. Knowledge base search (search_support_documents)
-        3. Direct database queries (query_database)
+        # Reconstruct messages and session memory
+        reconstruct_start = time.time()
+        session_memory, historical_messages = reconstruct_messages_from_history(history_data)
+        reconstruct_duration = time.time() - reconstruct_start
+        print(f"[chatbot] Reconstructed history in {reconstruct_duration:.2f}s: "
+              f"{len(historical_messages)} historical messages")
+
+        # Print debugging info (existing debug prints preserved)
+        print("\n--- Context being passed to the agent ---")
+        print(f"Current User ID: {user_id}")
+        print(f"History data received: {len(history_data) if history_data else 0} messages")
+        print(f"Historical messages reconstructed: {len(historical_messages)}")
+        for i, msg in enumerate(historical_messages):
+            print(f"[History {i}] {msg.__class__.__name__}: {msg.content[:120]}...")
+
+        # Extract current user message
+        # Build agent input
+        agent_prep_start = time.time()
+        user_message = messages[-1].get("content", "")
         
-        ## How to Answer Questions ##
-        - For simple requests like "what are my accounts?" or "what's my spending summary?", use the standard banking tools.
-        - **`get_transactions_summary` Tool**: Use this ONLY for general categorical summaries (e.g., "What's my spending summary this month?"). It CANNOT handle specific dates or lists.
-        - **`query_database` Tool**: Use this for ALL other data questions. This is your default tool for anything specific.
-            - "Show me my last 5 transactions" -> `query_database`
-            - "How many savings accounts do I have?" -> `query_database`
-            - "What has been my expense in 2025?" -> `query_database`
-            - "How much did I spend at Starbucks?" -> `query_database`
-        - When using `query_database`, you must first use the 'describe' action to see the table structure.
-        - When using `query_database`, you must first use the 'describe' action to see the table structure.
+        # Create wrapper functions that bind user_id
+        # This is the key fix - we create proper named functions instead of using partial
+        def get_user_accounts_for_current_user() -> str:
+            """Retrieves all accounts for the current user."""
+            return get_user_accounts(user_id=user_id)
         
-        ## Database Rules ##
-        - You must only access data for the user_id '{user_id}'.
-        - **CRITICAL SQL FIX:** The `datetimeoffset` column type (like 'created_at') will fail. You **MUST** `CAST` it to a string in all SELECT or ORDER BY clauses (e.g., `CAST(created_at AS VARCHAR(30)) AS created_at_str`).
+        def get_transactions_summary_for_current_user(time_period: str = 'this month', account_name: str = None) -> str:
+            """Provides a summary of the current user's spending."""
+            return get_transactions_summary(user_id=user_id, time_period=time_period, account_name=account_name)
         
-        ## Response Formatting ##
-        - **Be concise.** Do not explain your internal process (e.g., "I described the tables...").
-        - **Present results directly.**
-        - When a user asks for a list of transactions, format the final answer (after all tool calls are done) as a clean bulleted list.
-        - **Example of a good response:**
-          "Here are your last 5 transactions:
-          - [Date] - $[Amount] - [Description] - [Category] - [Status]
-          - [Date] - $[Amount] - [Description] - [Category] - [Status]"
-        """,
-        name = "banking_agent_v1"
-    )
-    
-    # Thread config for session management
-    thread_config = {"configurable": {"thread_id": session_id}}
-    all_messages = historical_messages + [HumanMessage(content=user_message)]
+        def create_new_account_for_current_user(account_type: str = 'checking', name: str = None, balance: float = 0.0) -> str:
+            """Creates a new bank account for the current user."""
+            return create_new_account(user_id=user_id, account_type=account_type, name=name, balance=balance)
+        
+        def transfer_money_for_current_user(from_account_name: str = None, to_account_name: str = None, 
+                                            amount: float = 0.0, to_external_details: dict = None) -> str:
+            """Transfers money between current user's accounts or to an external account."""
+            return transfer_money(user_id=user_id, from_account_name=from_account_name, 
+                                to_account_name=to_account_name, amount=amount, 
+                                to_external_details=to_external_details)
+        
+        # Tools list with properly named wrapper functions
+        tools = [
+            get_user_accounts_for_current_user,
+            get_transactions_summary_for_current_user,
+            search_support_documents, 
+            create_new_account_for_current_user,
+            transfer_money_for_current_user,
+            query_database
+        ]
 
-    trace_start_time = time.time()
-    response = banking_agent.invoke(
-        {"messages": all_messages}, 
-        config=thread_config
-    )
-    end_time = time.time()
-    trace_duration = int((end_time - trace_start_time) * 1000)
+        # Initialize banking agent with enhanced prompt
+        banking_agent = create_react_agent(
+            model=ai_client,
+            tools=tools,
+            checkpointer=session_memory,
+            prompt=f"""
+            You are a customer support agent for a banking application.
+            
+            **IMPORTANT: You are currently helping user_id: {user_id}**
+            All operations must be performed for this user only.
+            
+            You have access to the following capabilities:
+            1. Standard banking operations (get_user_accounts, get_transactions_summary, transfer_money, create_new_account)
+            2. Knowledge base search (search_support_documents)
+            3. Direct database queries (query_database)
+            
+            ## How to Answer Questions ##
+            - For simple requests like "what are my accounts?" or "what's my spending summary?", use the standard banking tools.
+            - **`get_transactions_summary` Tool**: Use this ONLY for general categorical summaries (e.g., "What's my spending summary this month?"). It CANNOT handle specific dates or lists.
+            - **`query_database` Tool**: Use this for ALL other data questions. This is your default tool for anything specific.
+                - "Show me my last 5 transactions" -> `query_database`
+                - "How many savings accounts do I have?" -> `query_database`
+                - "What has been my expense in 2025?" -> `query_database`
+                - "How much did I spend at Starbucks?" -> `query_database`
+            - When using `query_database`, you must first use the 'describe' action to see the table structure.
+            - When using `query_database`, you must first use the 'describe' action to see the table structure.
+            
+            ## Database Rules ##
+            - You must only access data for the user_id '{user_id}'.
+            - **CRITICAL SQL FIX:** The `datetimeoffset` column type (like 'created_at') will fail. You **MUST** `CAST` it to a string in all SELECT or ORDER BY clauses (e.g., `CAST(created_at AS VARCHAR(30)) AS created_at_str`).
+            
+            ## Response Formatting ##
+            - **Be concise.** Do not explain your internal process (e.g., "I described the tables...").
+            - **Present results directly.**
+            - When a user asks for a list of transactions, format the final answer (after all tool calls are done) as a clean bulleted list.
+            - **Example of a good response:**
+            "Here are your last 5 transactions:
+            - [Date] - $[Amount] - [Description] - [Category] - [Status]
+            - [Date] - $[Amount] - [Description] - [Category] - [Status]"
+            """,
+            name = "banking_agent_v1"
+        )
+        
+        # Thread config for session management
+        thread_config = {"configurable": {"thread_id": session_id}}
+        all_messages = historical_messages + [HumanMessage(content=user_message)]
+        agent_prep_duration = time.time() - agent_prep_start
+        print(f"[chatbot] Agent prep (prompt, tools, messages) completed in "
+              f"{agent_prep_duration:.2f}s")
 
-    print("################### TRACE RESPONSE ######################")
-    all_messages = response['messages']
-    historical_count = len(historical_messages)
-    final_messages = all_messages[historical_count:]
+        trace_start = time.time()
+        print("[chatbot] Invoking banking_agent...")
+        response = banking_agent.invoke(
+            {"messages": all_messages}, 
+            config=thread_config
+        )
+        trace_duration = time.time() - trace_start
+        print(f"[chatbot] LLM / agent invocation completed in {trace_duration:.2f}s")
 
-    for msg in final_messages:
-        print(f"[{msg.__class__.__name__}] {msg.content}")
+        print("################### TRACE RESPONSE ######################")
+        process_start = time.time()
+        all_messages = response['messages']
+        historical_count = len(historical_messages)
+        final_messages = all_messages[historical_count:]
 
-    analytics_data = {
-        "session_id": session_id,
-        "user_id": user_id,
-        "messages": _serialize_messages(final_messages),
-        "trace_duration": trace_duration,
-    }
+        for msg in final_messages:
+            print(f"[{msg.__class__.__name__}] {msg.content}")
+        
+        process_duration = time.time() - process_start
+        print(f"[chatbot] Processed agent response in {process_duration:.2f}s")
 
-    # calling analytics service to capture this trace
-    call_analytics_service("chat/log-trace", data=analytics_data)
-    return jsonify({
-        "response": final_messages[-1].content,
-        "session_id": session_id,
-        "tools_used": []
-    })
+        # Prepare analytics payload
+        analytics_payload_start = time.time()
+        analytics_data = {
+            "session_id": session_id,
+            "user_id": user_id,
+            "messages": _serialize_messages(final_messages),
+            "trace_duration": int(trace_duration * 1000) # in ms,
+        }
+
+        # calling analytics service to capture this trace
+        analytics_call_start = time.time()
+        call_analytics_service("chat/log-trace", data=analytics_data)
+        analytics_call_duration = time.time() - analytics_call_start
+        print(f"[chatbot] Analytics log-trace call duration: {analytics_call_duration:.2f}s")
+
+        total_duration = time.time() - request_start
+        print(f"[chatbot] Total /api/chatbot request duration: {total_duration:.2f}s")
+        print("========== /api/chatbot request finished ==========\n")
+
+        return jsonify({
+            "response": final_messages[-1].content,
+            "session_id": session_id,
+            "tools_used": []
+        })
+    except Exception as e:
+        total_duration = time.time() - request_start
+        print(f"[chatbot] ERROR after {total_duration:.2f}s: {e}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 def initialize_banking_app():
     """Initialize banking app when called from combined launcher."""
