@@ -1,7 +1,7 @@
 import time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
-from chat_data_model import ChatHistoryManager
+import chat_data_model  # NOTE: import module, not ChatHistoryManager directly
 from shared.utils import _serialize_messages
 from langchain_core.messages import BaseMessage
 
@@ -11,10 +11,14 @@ def get_chat_history_for_session(session_id: str, user_id: str) -> List[Dict[str
     In-process equivalent of GET /analytics/api/chat/history/<session_id>.
     Returns a list of serialized messages for the given session.
     """
-    # ChatHistoryManager already ensures the session exists
+    # Get latest ChatHistoryManager after init_chat_db has run
+    ChatHistoryManager = chat_data_model.ChatHistoryManager
+    if ChatHistoryManager is None:
+        raise RuntimeError("ChatHistoryManager is not initialized. Did you call init_chat_db(db)?")
+
     manager = ChatHistoryManager(session_id=session_id, user_id=user_id)
     history = manager.get_conversation_history(limit=50)
-    return history
+    return history or []
 
 
 def log_chat_trace(
@@ -25,15 +29,17 @@ def log_chat_trace(
 ) -> None:
     """
     In-process equivalent of POST /analytics/api/chat/log-trace.
-    Takes LangChain messages + timing and writes them to the analytics DB.
     """
     start = time.time()
+
+    ChatHistoryManager = chat_data_model.ChatHistoryManager
+    if ChatHistoryManager is None:
+        raise RuntimeError("ChatHistoryManager is not initialized. Did you call init_chat_db(db)?")
+
     manager = ChatHistoryManager(session_id=session_id, user_id=user_id)
 
-    # Reuse your existing serialization format
     serialized_messages = _serialize_messages(messages)
 
-    # ChatHistoryManager.add_trace_messages expects serialized messages + trace_duration
     manager.add_trace_messages(
         serialized_messages=serialized_messages,
         trace_duration=trace_duration_ms,
