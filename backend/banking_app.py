@@ -558,14 +558,16 @@ def chatbot():
         
         # Fetch chat history from the analytics service
         history_start = time.time()
-        history_data = call_analytics_service(f"chat/history/{session_id}", method='GET')
+        raw_history = get_chat_history_for_session(session_id=session_id, user_id=user_id)
         history_duration = time.time() - history_start
-        print(f"[chatbot] History fetch duration: {history_duration:.2f}s "
-              f"(has_history={bool(history_data)})")
+        print(
+            f"[chatbot] History fetch (in-process) duration: {history_duration:.2f}s "
+            f"(records={len(raw_history) if raw_history else 0})"
+        )
         
         # Reconstruct messages and session memory
         reconstruct_start = time.time()
-        session_memory, historical_messages = reconstruct_messages_from_history(history_data)
+        session_memory, historical_messages = reconstruct_messages_from_history(raw_history)
         reconstruct_duration = time.time() - reconstruct_start
         print(f"[chatbot] Reconstructed history in {reconstruct_duration:.2f}s: "
               f"{len(historical_messages)} historical messages")
@@ -686,19 +688,20 @@ def chatbot():
         print(f"[chatbot] Processed agent response in {process_duration:.2f}s")
 
         # Prepare analytics payload
-        analytics_payload_start = time.time()
-        analytics_data = {
-            "session_id": session_id,
-            "user_id": user_id,
-            "messages": _serialize_messages(final_messages),
-            "trace_duration": int(trace_duration * 1000) # in ms,
-        }
+        trace_duration_ms = int(trace_duration * 1000)
 
-        # calling analytics service to capture this trace
         analytics_call_start = time.time()
-        call_analytics_service("chat/log-trace", data=analytics_data)
+        log_chat_trace(
+            session_id=session_id,
+            user_id=user_id,
+            messages=final_messages,
+            trace_duration_ms=trace_duration_ms,
+        )
         analytics_call_duration = time.time() - analytics_call_start
-        print(f"[chatbot] Analytics log-trace call duration: {analytics_call_duration:.2f}s")
+        print(
+            f"[chatbot] In-process analytics log-trace duration: "
+            f"{analytics_call_duration:.2f}s"
+        )
 
         total_duration = time.time() - request_start
         print(f"[chatbot] Total /api/chatbot request duration: {total_duration:.2f}s")
