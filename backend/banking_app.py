@@ -578,7 +578,7 @@ def chatbot():
         # Print debugging info (existing debug prints preserved)
         print("\n--- Context being passed to the agent ---")
         print(f"Current User ID: {user_id}")
-        print(f"History data received: {len(history_data) if history_data else 0} messages")
+        print(f"History data received: {len(raw_history) if raw_history else 0} messages")
         print(f"Historical messages reconstructed: {len(historical_messages)}")
         for i, msg in enumerate(historical_messages):
             print(f"[History {i}] {msg.__class__.__name__}: {msg.content[:120]}...")
