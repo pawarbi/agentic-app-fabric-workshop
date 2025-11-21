@@ -322,7 +322,7 @@ else:
 model_config = {
     "azure_endpoint": os.environ.get("AZURE_OPENAI_ENDPOINT"),
     "api_key": os.environ.get("AZURE_OPENAI_KEY"),
-    "api_version": "2024-12-01-preview",
+    "api_version": os.environ.get("AZURE_OPENAI_API_VERSION"),
     "azure_deployment": os.environ.get("AZURE_OPENAI_DEPLOYMENT")
 }
 
@@ -351,7 +351,7 @@ print("Evaluators initialized successfully")
 # Get Azure OpenAI credentials to pass to UDF
 azure_endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
 api_key = os.environ.get("AZURE_OPENAI_KEY")
-api_version = "2024-12-01-preview"
+api_version = os.environ.get("AZURE_OPENAI_API_VERSION")
 deployment_name = os.environ.get("AZURE_OPENAI_DEPLOYMENT")
 
 print(f"\nUDF will use:")
