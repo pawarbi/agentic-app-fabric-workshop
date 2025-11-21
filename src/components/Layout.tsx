@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { User, Bell, Settings, LogOut, Menu, X } from 'lucide-react';
+import { Bell, Settings, Menu, X } from 'lucide-react';
+import UserSwitcher from './UserSwitcher';
 
 interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
   onTabChange: (tab: string) => void;
+  onSignUpClick: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange, onSignUpClick }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navigation = [
@@ -54,12 +56,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, onTabChange }) => 
               <button className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-full">
                 <Settings className="h-5 w-5" />
               </button>
-              <div className="flex items-center space-x-2">
-                <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-                  <User className="h-4 w-4 text-white" />
-                </div>
-                <span className="hidden md:block text-sm font-medium text-gray-700">John Doe</span>
-              </div>
+              
+              {/* User Switcher replaces the old user icon */}
+              <UserSwitcher onSignUpClick={onSignUpClick} />
+              
               <button className="md:hidden p-2" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
                 {isMobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
               </button>

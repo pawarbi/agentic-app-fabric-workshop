@@ -49,7 +49,7 @@ def run_combined_services():
             # Run data ingestion
             try:
                 from init_data import check_and_ingest_data
-                check_and_ingest_data()
+                check_and_ingest_data(banking_app.db.engine)
                 print("✅ Data initialization complete")
             except Exception as e:
                 print(f"⚠️ Data initialization warning: {e}")

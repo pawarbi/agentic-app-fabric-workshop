@@ -205,8 +205,22 @@ def init_chat_db(database):
             agent_id = None
             if "name" in message:
                 agent_id = db.session.query(AgentDefinition.agent_id).filter_by(name=message["name"]).scalar()
-            tool_name = message.get("additional_kwargs", {}).get('tool_calls', [{}])[0].get('function', {}).get("name")
-            tool_id = db.session.query(ToolDefinition.tool_id).filter_by(name=tool_name).scalar()
+
+            raw_tool_name = message.get("additional_kwargs", {}).get('tool_calls', [{}])[0].get('function', {}).get("name")
+
+            # Map wrapper tool names (used in the agent) to canonical tool names (stored in ToolDefinition)
+            TOOL_NAME_MAP = {
+                "get_user_accounts_for_current_user": "get_user_accounts",
+                "get_transactions_summary_for_current_user": "get_transactions_summary",
+                "create_new_account_for_current_user": "create_new_account",
+                "transfer_money_for_current_user": "transfer_money",
+                # These already match ToolDefinition names:
+                # "search_support_documents": "search_support_documents",
+                # "query_database": "query_database",
+            }
+            canonical_tool_name = TOOL_NAME_MAP.get(raw_tool_name, raw_tool_name)
+
+            tool_id = db.session.query(ToolDefinition.tool_id).filter_by(name=canonical_tool_name).scalar()
 
             entry_message = ChatHistory(
                 session_id=self.session_id,
@@ -214,9 +228,9 @@ def init_chat_db(database):
                 agent_id=agent_id,
                 trace_id=trace_id,
                 message_type='tool_call',
-                tool_id = tool_id,
+                tool_id=tool_id,
                 tool_call_id=message.get("additional_kwargs", {}).get('tool_calls', [{}])[0].get('id'),
-                tool_name=tool_name,
+                tool_name=canonical_tool_name,
                 total_tokens=message.get("response_metadata", {}).get("token_usage", {}).get('total_tokens'),
                 completion_tokens=message.get("response_metadata", {}).get("token_usage", {}).get('completion_tokens'),
                 prompt_tokens=message.get("response_metadata", {}).get("token_usage", {}).get('prompt_tokens'),
@@ -228,11 +242,14 @@ def init_chat_db(database):
             db.session.add(entry_message)
             db.session.commit()
             print("Tool call message added to chat history:", message["id"])
-            return {"tool_call_id": message.get("additional_kwargs", {}).get('tool_calls', [{}])[0].get('id'),
-                    "tool_id": tool_id, "tool_name": tool_name,
-                    "tool_input": message.get("additional_kwargs", {}).get('tool_calls', [{}])[0].get('function', {}).get("arguments"),
-                    "total_tokens": message.get("response_metadata", {}).get("token_usage", {}).get('total_tokens')}
-
+            return {
+                "tool_call_id": message.get("additional_kwargs", {}).get('tool_calls', [{}])[0].get('id'),
+                "tool_id": tool_id,
+                "tool_name": canonical_tool_name,
+                "tool_input": message.get("additional_kwargs", {}).get('tool_calls', [{}])[0].get('function', {}).get("arguments"),
+                "total_tokens": message.get("response_metadata", {}).get("token_usage", {}).get('total_tokens'),
+            }
+        
         def add_tool_result_message(self, message: dict, trace_id: str):
             """Log a tool result"""
             tool_name = message["name"]
@@ -266,23 +283,28 @@ def init_chat_db(database):
             """Log detailed tool usage metrics"""
             existing = ToolUsage.query.filter_by(tool_call_id=tool_info.get("tool_call_id")).first()
             tool_msg = ''
-            if(type(tool_info.get("tool_output")) is dict):
+            if isinstance(tool_info.get("tool_output"), dict):
                 tool_msg = tool_info.get("tool_output").get('message', '')
             else:
                 tool_msg = str(tool_info.get("tool_output"))
-            if("error" in str(tool_info.get("tool_output")).lower()):
+            if "error" in str(tool_info.get("tool_output")).lower():
                 tool_call_status = "Errored"
             else:
                 tool_call_status = "Healthy"
+
+            # Safety: if no tool_id, skip logging to avoid IntegrityError
+            if not tool_info.get("tool_id"):
+                print(f"[ChatHistoryManager] WARNING: No tool_id resolved for tool_call_id {tool_info.get('tool_call_id')} with name {tool_info.get('tool_name')}. Skipping ToolUsage logging.")
+                return
 
             if existing:
                 existing.tool_output = tool_info.get("tool_output")
                 existing.trace_id = trace_id
                 existing.session_id = self.session_id
-                existing.tool_id = tool_info.get("tool_id") 
-                existing.tool_name = tool_info.get("tool_name") 
-                existing.tool_input = tool_info.get("tool_input") 
-                existing.tool_output = tool_info.get("tool_output") 
+                existing.tool_id = tool_info.get("tool_id")
+                existing.tool_name = tool_info.get("tool_name")
+                existing.tool_input = tool_info.get("tool_input")
+                existing.tool_output = tool_info.get("tool_output")
                 existing.tool_message = tool_msg
                 existing.status = tool_call_status
                 existing.tokens_used = tool_info.get("total_tokens")
@@ -302,7 +324,7 @@ def init_chat_db(database):
                 )
                 db.session.add(tool_usage)
                 db.session.commit()
-            return 
+            return
 
         def get_conversation_history(self, limit: int = 50):
             """Retrieve conversation history for this session"""
