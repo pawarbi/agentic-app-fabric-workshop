@@ -1,5 +1,6 @@
 from werkzeug.serving import run_simple
 from werkzeug.middleware.dispatcher import DispatcherMiddleware  # <-- add this
+import os
 
 def create_combined_app():
     """Create combined WSGI application"""
