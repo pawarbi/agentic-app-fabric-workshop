@@ -397,13 +397,13 @@ def initialize_tool_definitions():
     """Initialize tool definitions in the database"""
     tools_data = [
         {
-            "name": "get_user_accounts",
+            "name": "get_user_accounts_for_current_user",
             "description": "Retrieves all accounts for a given user",
             "input_schema": {"type": "object", "properties": {}},
             "cost_per_call_cents": 0
         },
         {
-            "name": "get_transactions_summary",
+            "name": "get_transactions_summary_for_current_user",
             "description": "Provides spending summary with time period and account filters",
             "input_schema": {
                 "type": "object",
@@ -425,7 +425,7 @@ def initialize_tool_definitions():
             "cost_per_call_cents": 2
         },
         {
-            "name": "create_new_account",
+            "name": "create_new_account_for_current_user",
             "description": "Creates a new bank account for the user",
             "input_schema": {
                 "type": "object",
@@ -439,7 +439,7 @@ def initialize_tool_definitions():
             "cost_per_call_cents": 0
         },
         {
-            "name": "transfer_money",
+            "name": "transfer_money_for_current_user",
             "description": "Transfers money between accounts or to external accounts",
             "input_schema": {
                 "type": "object",
