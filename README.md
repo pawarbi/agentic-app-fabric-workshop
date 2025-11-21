@@ -212,12 +212,10 @@ python Ingest_pdf.py
 ---
 ## Evaluate agent performance via Azure Evaluation Framework (Optional)
 
-In the folder called "Agentic_eval" we have included a notebook that computes four scores (intent resolution, relevance, coherence and fluency) reflecting the agent's performance when answsering user requests. These scores are calculated based on Question/Answer pairs using [Azure AI Evaluation](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/develop/agent-evaluate-sdk)
-. You can set up this notebook in your Fabric workspace and run by following below steps:
-1. Download the notebook file
-2. In your workspace, click on **import -> notebook** and import the notebook file 
-3. Open the notebook, under **Explorer -> Data items -> items, click on  "..." and "Remove all sources"**. Now click on **"+ Add data items" -> "Existing Data Sources"** and choose the agentic_lake. Now your notebook is connected to the correct data source
-4. Last step is to provide environment variables required to connect to your llm model of choice to be used as the judge. Create a .env file as below and upload it to the **"Built-in" folder under "Resources" tab** in your notebook page:
+As part of Fabric artifacts, we have included a notebook (QA_Evaluation_Notebook) that computes four scores (intent resolution, relevance, coherence and fluency) reflecting the agent's performance when answsering user requests. These scores are calculated based on Question/Answer pairs using [Azure AI Evaluation](https://learn.microsoft.com/en-us/azure/ai-foundry/how-to/develop/agent-evaluate-sdk)
+You can set up this notebook in your Fabric workspace and run by following below steps:
+1. Open the notebook item, on the left side, under **Explorer -> Data items** click on **"+ Add data items" -> "Existing Data Sources"** and choose the agentic_lake. Now your notebook is connected to the correct data source
+2. Last step is to provide environment variables required to connect to your **llm model** of choice to be used as the judge. Create a .env file as below and upload it to the **"Built-in" folder under "Resources" tab** in your notebook page:
 
     ``` 
     AZURE_OPENAI_KEY="your key"
@@ -225,7 +223,7 @@ In the folder called "Agentic_eval" we have included a notebook that computes fo
     AZURE_OPENAI_DEPLOYMENT=model name
     AZURE_OPENAI_API_VERSION = api version
     ```
-5. Now you can run the cells in the notebook in order. After all is run successfully there should be a new table created in the "agentic_lake" called **answerqualityscores_withcontext** which has all the scores.
+3. Now you can run the cells in the notebook in order. After all is run successfully there should be a new table created in the "agentic_lake" called **answerqualityscores_withcontext** which has all the scores.
 
 ##  Contributing
 
