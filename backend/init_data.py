@@ -1,6 +1,7 @@
 import os
 import sqlalchemy
 from sqlalchemy import text
+import re
 
 def get_ingest_sql_path() -> str:
     """
@@ -38,27 +39,71 @@ def ingest_initial_data(engine: sqlalchemy.engine.Engine):
         with open(ingest_sql_path, "r", encoding="utf-8") as f:
             sql_script = f.read()
 
+        # Split on GO (case-insensitive, line-based)
+        # This regex ensures GO is on its own line
+        batches = re.split(r'^\s*GO\s*$', sql_script, flags=re.MULTILINE | re.IGNORECASE)
+        
+        # Filter out empty batches and strip whitespace
+        batches = [batch.strip() for batch in batches if batch.strip()]
+        
+        print(f"[init_data] Executing {len(batches)} SQL batches...")
+        
+        j=1
         with engine.begin() as conn:
-            # If the script contains multiple statements, use .exec_driver_sql
-            conn.exec_driver_sql(sql_script)
-        print("[init_data] Data ingestion completed successfully.")
+            for i, batch in enumerate(batches, 1):
+                try:
+                    # Skip empty or comment-only batches
+                    if not batch or batch.startswith('--'):
+                        continue
+                    
+                    print(f"[init_data] Executing batch {j}...")
+                    conn.exec_driver_sql(batch)
+                    print(f"[init_data] Batch {j} executed successfully.")
+                    j += 1
+                    
+                except Exception as e:
+                    print(f"[init_data] ERROR in batch {i}: {str(e)}")
+                    print(f"[init_data] Batch content preview: {batch[:200]}...")
+                    # Continue with remaining batches
+                    continue
+        
+        print("[init_data] ✅ Data ingestion completed successfully.")
+        
     except FileNotFoundError as e:
-        # Keep the error loud so you notice in logs
         print(f"[init_data] FATAL ERROR: {e}")
         raise
     except Exception as e:
         print(f"[init_data] ERROR during data ingestion: {e}")
+        import traceback
+        traceback.print_exc()
         raise
 
 
 def check_and_ingest_data(engine: sqlalchemy.engine.Engine):
     """
-    Backwards-compatible entry point used by banking_app.py.
-
-    You can extend this to:
-      - Check if data already exists
-      - Only run ingest_initial_data(engine) when needed
-    For now, always run ingest_initial_data to ensure the demo data is present.
+    Check if data exists, only ingest if database is empty.
     """
     print("[init_data] check_and_ingest_data called")
-    ingest_initial_data(engine)
+    
+    try:
+        # Check if data already exists
+        with engine.connect() as conn:
+            result = conn.execute(text("SELECT COUNT(*) FROM DocsChunks_Embeddings")).scalar()
+            
+            if result > 0:
+                print(f"✅ Data already exists. Skipping ingestion.")
+                return
+            
+            print("No data found. Running data ingestion...")
+            
+        # Only run if no data exists
+        ingest_initial_data(engine)
+        
+    except Exception as e:
+        print(f"[init_data] Warning: Could not check for existing data: {e}")
+        print("[init_data] Attempting ingestion anyway...")
+        try:
+            ingest_initial_data(engine)
+        except Exception as e2:
+            print(f"[init_data] ❌ Failed to ingest data: {e2}")
+            # Don't raise - allow app to start even if ingestion fails
