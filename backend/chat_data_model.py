@@ -312,7 +312,7 @@ def init_chat_db(database):
 
             tool_name = message.get("additional_kwargs", {}).get('tool_calls', [{}])[0].get('function', {}).get("name")
             tool_id = db.session.query(ToolDefinition.tool_id).filter_by(name=tool_name).scalar()
-            
+
             entry_message = ChatHistory(
                 session_id=self.session_id,
                 user_id=self.user_id,
@@ -529,11 +529,46 @@ def initialize_tool_definitions():
             "agent_type": "transaction_agent"
         },
         {
-            "name": "search_support_documents_tool",
+            "name": "search_support_documents",
             "description": "Searches the knowledge base for customer support",
             "input_schema": {"user_question": "string"},
             "agent_type": "support_agent"
+        },
+        {
+            "name": "query_database",
+            "description": "Query the database using direct tools to describe tables or read data",
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "enum": ["describe", "read"],
+                        "description": "Either 'describe' to get table structure or 'read' to query data"
+                    },
+                    "table_name": {
+                        "type": "string",
+                        "description": "Name of the table (required for 'describe' action)"
+                    },
+                    "schema": {
+                        "type": "string",
+                        "description": "Schema name (default: 'dbo')"
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": "SELECT SQL query (required for 'read' action)"
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "description": "Maximum rows to return (1-1000, default: 100)"
+                    }
+                },
+                "required": ["action"]
+            },
+            "cost_per_call_cents": 1,
+            "agent_type": "transaction_agent"
         }
+
+
     ]
     
     for tool_data in tools:
@@ -559,28 +594,28 @@ def initialize_agent_definitions():
             "name": "coordinator_agent",
             "description": "Routes customer requests to appropriate specialist agents",
             "agent_type": "coordinator",
-            "llm_config": {"model": "gpt-4", "temperature": 0.1},
+            "llm_config": {"model": "gpt-4.1", "temperature": 0.1},
             "prompt_template": "You are a Banking Coordinator that routes customer requests to the right specialist."
         },
         {
             "name": "account_agent", 
             "description": "Specialized in account management operations",
             "agent_type": "specialist",
-            "llm_config": {"model": "gpt-4", "temperature": 0.1},
+            "llm_config": {"model": "gpt-4.1", "temperature": 0.1},
             "prompt_template": "You are an Account Management Agent for a banking system."
         },
         {
             "name": "transaction_agent",
             "description": "Specialized in transaction operations",
             "agent_type": "specialist", 
-            "llm_config": {"model": "gpt-4", "temperature": 0.1},
+            "llm_config": {"model": "gpt-4.1", "temperature": 0.1},
             "prompt_template": "You are a Transaction Agent for a banking system."
         },
         {
             "name": "support_agent",
             "description": "Specialized in customer support",
             "agent_type": "support",
-            "llm_config": {"model": "gpt-4", "temperature": 0.1},
+            "llm_config": {"model": "gpt-4.1", "temperature": 0.1},
             "prompt_template": "You are a Customer Support Agent for a banking system."
         }
     ]

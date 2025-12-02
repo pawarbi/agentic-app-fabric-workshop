@@ -361,7 +361,7 @@ def get_users():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 # AI Chatbot Tool Definitions (same as before)
-@tool
+
 def get_user_accounts(user_id: str) -> str:
     """Retrieves all accounts for a given user."""
     try:
@@ -375,7 +375,7 @@ def get_user_accounts(user_id: str) -> str:
     except Exception as e:
         return f"Error retrieving accounts: {str(e)}"
 
-@tool
+
 def get_transactions_summary(user_id: str, time_period: str = 'this month', account_name: str = None) -> str:
     """
         Provides a *categorical summary* of the user's spending for general periods.
@@ -424,7 +424,7 @@ def get_transactions_summary(user_id: str, time_period: str = 'this month', acco
         print(f"ERROR in get_transactions_summary: {e}")
         return json.dumps({"status": "error", "message": f"An error occurred while generating the transaction summary."})
 
-@tool
+
 def search_support_documents(user_question: str) -> str:
     """Searches the knowledge base for answers to customer support questions using vector search."""
     if not vector_store:
@@ -463,7 +463,7 @@ def search_support_documents(user_question: str) -> str:
         print(f"ERROR in search_support_documents: {e}")
         return "An error occurred while searching for support documents."
 
-@tool
+
 def create_new_account(user_id: str, account_type: str = 'checking', name: str = None, balance: float = 0.0) -> str:
     """Creates a new bank account for the user."""
     if not name:
@@ -480,7 +480,7 @@ def create_new_account(user_id: str, account_type: str = 'checking', name: str =
         db.session.rollback()
         return f"Error creating account: {str(e)}"
 
-@tool
+
 def transfer_money(user_id: str, from_account_name: str = None, to_account_name: str = None, amount: float = 0.0, to_external_details: dict = None) -> str:
     """Transfers money between user's accounts or to an external account."""
     if not from_account_name or (not to_account_name and not to_external_details) or amount <= 0:
@@ -512,7 +512,7 @@ def transfer_money(user_id: str, from_account_name: str = None, to_account_name:
     except Exception as e:
         db.session.rollback()
         return f"Error during transfer: {str(e)}"
-@tool
+
 def query_tool():
     """Wrapper for database query tool."""
     return query_database
@@ -610,12 +610,12 @@ def chatbot():
             "session_id": session_id,
             "final_result": ""
         }
+        print("state being passed: ", initial_state)
 
 
         
         # Thread config for session management
         thread_config = {"configurable": {"thread_id": session_id}}
-        all_messages = historical_messages + [HumanMessage(content=user_message)]
         agent_prep_duration = time.time() - agent_prep_start
         print(f"[chatbot] Agent prep (prompt, tools, messages) completed in "
               f"{agent_prep_duration:.2f}s")

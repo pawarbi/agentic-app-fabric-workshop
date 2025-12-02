@@ -3,6 +3,7 @@ from langchain_core.messages import  BaseMessage
 from langgraph.graph import StateGraph, END
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.tools import tool
 
 # Import existing banking infrastructure
 from banking_app import (
@@ -24,18 +25,33 @@ def create_banking_llm():
     return ai_client
 # Specialized Banking Agents
 
-def create_account_management_agent():
+def create_account_management_agent(user_id: str):
     """Agent specialized in account management operations."""
     llm = create_banking_llm()
-    tools = [get_user_accounts, create_new_account]
     
-    system_prompt = """You are an Account Management Agent for a banking system.
+    # Create user-specific tool wrappers
+    @tool
+    def get_user_accounts_tool() -> str:
+        """Retrieves all accounts for the current user."""
+        return get_user_accounts(user_id=user_id)
+    
+    @tool
+    def create_new_account_tool(account_type: str = 'checking', name: str = None, balance: float = 0.0) -> str:
+        """Creates a new bank account for the current user."""
+        return create_new_account(user_id=user_id, account_type=account_type, name=name, balance=balance)
+    
+    tools = [get_user_accounts_tool, create_new_account_tool]
+    
+    system_prompt = f"""You are an Account Management Agent for a banking system.
     
     Your responsibilities:
     1. Help customers view their accounts and account details
     2. Assist with creating new accounts (checking, savings, etc.)
     3. Provide account information and balances
     4. Handle account-related inquiries
+    
+    ## Database Rules ##
+    - You are accessing data for user_id: {user_id}
     
     Always use the appropriate tools to get accurate, real-time account information.
     Be professional, secure, and helpful in all interactions.
@@ -48,18 +64,40 @@ def create_account_management_agent():
         checkpointer=MemorySaver()
     )
 
-def create_transaction_agent():
+def create_transaction_agent(user_id: str):
     """Agent specialized in transaction operations."""
     llm = create_banking_llm()
-    tools = [transfer_money, get_transactions_summary, query_tool]
     
-    system_prompt = """You are a Transaction Agent for a banking system.
+    # Create user-specific tool wrappers
+    @tool
+    def transfer_money_tool(from_account_name: str = None, to_account_name: str = None, amount: float = 0.0, to_external_details: dict = None) -> str:
+        """Transfers money between the current user's accounts or to an external account."""
+        return transfer_money(user_id=user_id, from_account_name=from_account_name, to_account_name=to_account_name, amount=amount, to_external_details=to_external_details)
+    
+    @tool
+    def get_transactions_summary_tool(time_period: str = 'this month', account_name: str = None) -> str:
+        """Provides a categorical summary of the current user's spending for general periods."""
+        return get_transactions_summary(user_id=user_id, time_period=time_period, account_name=account_name)
+    
+    
+    tools = [transfer_money_tool, get_transactions_summary_tool, query_tool]
+    
+    system_prompt = f"""You are a Transaction Agent for a banking system.
     
     Your responsibilities:
     1. Process money transfers between accounts
     2. Provide transaction summaries and spending analysis
-    3. Help customers understand their transaction history
-    4. Assist with payment-related inquiries
+        - **'get_transactions_summary_tool' Tool**: Use this ONLY for general categorical summaries (e.g., "What's my spending summary this month?"). It CANNOT handle specific dates or lists.
+        - **'query_tool' Tool**: Use this for ALL other data questions. This is your default tool for anything specific.
+            - "Show me my last 5 transactions" -> 'query_tool'
+            - "How many savings accounts do I have?" -> 'query_tool'
+            - "What has been my expense in 2025?" -> 'query_tool'
+            - "How much did I spend at Starbucks?" -> 'query_tool'
+        - When using 'query_tool', you must first use the 'describe' action to see the table structure.
+        
+    ## Database Rules ##
+    - You are accessing data for user_id: {user_id}
+    - **CRITICAL SQL FIX:** The 'datetimeoffset' column type (like 'created_at') will fail. You **MUST** 'CAST' it to a string in all SELECT or ORDER BY clauses (e.g., 'CAST(created_at AS VARCHAR(30)) AS created_at_str'). 
     
     Always verify account details and ensure sufficient funds before processing transfers.
     Be careful with financial transactions and provide clear confirmations.
@@ -96,6 +134,7 @@ def create_support_agent():
         checkpointer=MemorySaver()
     )
 
+
 def create_coordinator_agent():
     """Agent that routes customer requests to appropriate specialists."""
     llm = create_banking_llm()
@@ -104,11 +143,13 @@ def create_coordinator_agent():
     
     Route requests to:
     - account_agent: For account viewing, account creation, balance inquiries
-    - transaction_agent: For money transfers, payment history, spending analysis
+    - transaction_agent: For money transfers, payment and transaction history, spending analysis
     - support_agent: For general questions, policies, troubleshooting
     
     Analyze the customer's request and respond with ONLY the agent name: 
     "account_agent", "transaction_agent", or "support_agent"
+   
+    - Ensure other agents get the '{user_id}' of customer for data access.
     """
     
     return create_react_agent(
@@ -121,15 +162,17 @@ def create_coordinator_agent():
 # Multi-Agent Node Functions
 
 def coordinator_node(state: BankingAgentState):
-    """Route customer requests to appropriate specialist agent."""
-    messages = state["messages"]
-    last_message = messages[-1].content if messages else ""
+    coordinator_agent = create_coordinator_agent()
+    thread_config = {"configurable": {"thread_id": f"coordinator_{state['session_id']}"}}
+    response = coordinator_agent.invoke({"messages": state["messages"]}, config=thread_config)
+    state["messages"] = response["messages"]
+    last_message = state["messages"][-1].content
     
     # Enhanced routing logic
     message_lower = last_message.lower()
     
     # Account-related keywords
-    account_keywords = ["account", "balance", "create account", "new account", "checking", "savings", "accounts"]
+    account_keywords = ["account", "balance", "create account", "open account", "new account", "checking", "savings", "accounts", "credit"]
     
     # Transaction-related keywords  
     transaction_keywords = ["transfer", "send money", "payment", "transaction", "spending", "summary", "history"]
@@ -149,7 +192,8 @@ def coordinator_node(state: BankingAgentState):
 
 def account_agent_node(state: BankingAgentState):
     """Handle account management tasks."""
-    account_agent = create_account_management_agent()
+    user_id = state["user_id"]  # Get user_id from state
+    account_agent = create_account_management_agent(user_id)  # Pass user_id
     
     thread_config = {"configurable": {"thread_id": f"account_{state['session_id']}"}}
     
@@ -162,7 +206,8 @@ def account_agent_node(state: BankingAgentState):
 
 def transaction_agent_node(state: BankingAgentState):
     """Handle transaction-related tasks."""
-    transaction_agent = create_transaction_agent()
+    user_id = state["user_id"]  # Get user_id from state
+    transaction_agent = create_transaction_agent(user_id)  # Pass user_id
     
     thread_config = {"configurable": {"thread_id": f"transaction_{state['session_id']}"}}
     
@@ -190,7 +235,7 @@ def support_agent_node(state: BankingAgentState):
 
 def create_multi_agent_banking_system():
     """Create the multi-agent banking workflow."""
-    
+
     workflow = StateGraph(BankingAgentState)
     
     # Add nodes
