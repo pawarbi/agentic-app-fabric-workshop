@@ -10,11 +10,14 @@
 
 Through a hands-on interface, users can see the practical difference between writing a new transaction to the database, running complex analytical queries on historical data, and using natural language to ask an agent to query the database for them.
 
+**Test the live app here:** https://aka.ms/HostedAgenticAppFabric
 ---
 
 ## ✨ Features
 
 ### Banking Application
+
+
 
 - **The Banking Dashboard**: A central hub to view account balance and navigate the application.
 - **Transactions (OLTP)**: View a real-time list of all past transactions. This demonstrates a typical high-volume, read-heavy OLTP workload.
