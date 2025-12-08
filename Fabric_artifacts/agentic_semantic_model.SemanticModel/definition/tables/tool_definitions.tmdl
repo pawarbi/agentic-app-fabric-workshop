@@ -96,6 +96,16 @@ table tool_definitions
 
 		annotation SummarizationSetBy = Automatic
 
+	column agent_type
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 2caa095e-0e5b-49d7-8148-694b81e11798
+		sourceLineageTag: agent_type
+		summarizeBy: none
+		sourceColumn: agent_type
+
+		annotation SummarizationSetBy = Automatic
+
 	partition tool_definitions = entity
 		mode: directLake
 		source

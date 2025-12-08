@@ -103,6 +103,37 @@ table tool_usage
 
 		annotation SummarizationSetBy = Automatic
 
+	column executing_agent
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 47a140ff-66b7-4bb3-b537-e68fd2b02000
+		sourceLineageTag: executing_agent
+		summarizeBy: none
+		sourceColumn: executing_agent
+
+		annotation SummarizationSetBy = Automatic
+
+	column agent_type
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 4f91a811-78a0-4339-bfb0-b398de4658cf
+		sourceLineageTag: agent_type
+		summarizeBy: none
+		sourceColumn: agent_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column execution_time_ms
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 16c0a380-e495-4422-a7ad-5997817441f4
+		sourceLineageTag: execution_time_ms
+		summarizeBy: sum
+		sourceColumn: execution_time_ms
+
+		annotation SummarizationSetBy = Automatic
+
 	partition tool_usage = entity
 		mode: directLake
 		source

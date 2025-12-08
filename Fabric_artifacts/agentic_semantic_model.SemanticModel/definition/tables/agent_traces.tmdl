@@ -1,0 +1,158 @@
+table agent_traces
+	lineageTag: a688c932-db9b-4719-836b-d965922b2e5d
+	sourceLineageTag: [dbo].[agent_traces]
+
+	column trace_step_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 79f5e000-282d-41cc-a0b2-f9061003cdb7
+		sourceLineageTag: trace_step_id
+		summarizeBy: none
+		sourceColumn: trace_step_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column session_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 4a00de6a-7ab5-4317-b8d3-05235401734e
+		sourceLineageTag: session_id
+		summarizeBy: none
+		sourceColumn: session_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column trace_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: aa624d86-52cc-435b-ad66-821f4d135751
+		sourceLineageTag: trace_id
+		summarizeBy: none
+		sourceColumn: trace_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column user_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 56a2eb25-a18c-4d4a-8238-d0d3766fb511
+		sourceLineageTag: user_id
+		summarizeBy: none
+		sourceColumn: user_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column coordinator_agent
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 029c6701-4d8e-4c61-a2ec-ffc0c7fee8bc
+		sourceLineageTag: coordinator_agent
+		summarizeBy: none
+		sourceColumn: coordinator_agent
+
+		annotation SummarizationSetBy = Automatic
+
+	column target_agent
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 3efa37c3-ff96-44a4-8924-cdde40abc5c4
+		sourceLineageTag: target_agent
+		summarizeBy: none
+		sourceColumn: target_agent
+
+		annotation SummarizationSetBy = Automatic
+
+	column routing_reason
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: ea8b14ca-a812-4b2d-869f-78d7befacf97
+		sourceLineageTag: routing_reason
+		summarizeBy: none
+		sourceColumn: routing_reason
+
+		annotation SummarizationSetBy = Automatic
+
+	column task_type
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: b665bf31-4dce-4b3c-ae40-2b35a588b0a2
+		sourceLineageTag: task_type
+		summarizeBy: none
+		sourceColumn: task_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column step_order
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: e9afd74e-894d-41f7-a2f5-6cbb9c2d2703
+		sourceLineageTag: step_order
+		summarizeBy: sum
+		sourceColumn: step_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column execution_start
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: 368dc30f-0b8a-4ebf-98f0-0e5d0a4fba8b
+		sourceLineageTag: execution_start
+		summarizeBy: none
+		sourceColumn: execution_start
+
+		annotation SummarizationSetBy = Automatic
+
+	column execution_end
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: 7e156020-3094-477d-b93c-af700b8aca6f
+		sourceLineageTag: execution_end
+		summarizeBy: none
+		sourceColumn: execution_end
+
+		annotation SummarizationSetBy = Automatic
+
+	column execution_duration_ms
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: ecf36fa8-5383-4d8f-88cc-05c30d3b61a7
+		sourceLineageTag: execution_duration_ms
+		summarizeBy: sum
+		sourceColumn: execution_duration_ms
+
+		annotation SummarizationSetBy = Automatic
+
+	column success
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		sourceProviderType: bit
+		lineageTag: 5507f0df-965b-4896-a24f-0492b09874eb
+		sourceLineageTag: success
+		summarizeBy: none
+		sourceColumn: success
+
+		annotation SummarizationSetBy = Automatic
+
+	column error_message
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: f6563596-f8e8-4f61-921a-5c755d550152
+		sourceLineageTag: error_message
+		summarizeBy: none
+		sourceColumn: error_message
+
+		annotation SummarizationSetBy = Automatic
+
+	partition agent_traces = entity
+		mode: directLake
+		source
+			entityName: agent_traces
+			schemaName: dbo
+			expressionSource: DatabaseQuery
+
+	annotation PBI_ResultType = Table
+

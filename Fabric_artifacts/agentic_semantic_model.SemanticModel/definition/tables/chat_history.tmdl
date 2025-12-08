@@ -213,6 +213,37 @@ table chat_history
 
 		annotation SummarizationSetBy = Automatic
 
+	column agent_name
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: e033371a-94e2-4c9d-a3ad-f8b74eaae0e9
+		sourceLineageTag: agent_name
+		summarizeBy: none
+		sourceColumn: agent_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column agent_type
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: a0c29369-eaf2-48d8-ae2a-34be5939d974
+		sourceLineageTag: agent_type
+		summarizeBy: none
+		sourceColumn: agent_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column routing_step
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 0e13fb4c-fb84-4649-b245-a292edf7e432
+		sourceLineageTag: routing_step
+		summarizeBy: sum
+		sourceColumn: routing_step
+
+		annotation SummarizationSetBy = Automatic
+
 	partition chat_history = entity
 		mode: directLake
 		source

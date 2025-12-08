@@ -5,6 +5,7 @@
   "dataSourceInstructions": null,
   "displayName": "agentic_semantic_model",
   "type": "semantic_model",
+  "userDescription": null,
   "metadata": {},
   "elements": [
     {

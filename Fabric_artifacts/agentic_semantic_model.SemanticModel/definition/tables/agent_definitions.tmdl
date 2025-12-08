@@ -52,6 +52,27 @@ table agent_definitions
 
 		annotation SummarizationSetBy = Automatic
 
+	column agent_type
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: aa371517-9719-45ed-897c-d74dc85d08c3
+		sourceLineageTag: agent_type
+		summarizeBy: none
+		sourceColumn: agent_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_at
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: eaef719c-05d0-4ca2-bb13-b0f1e80676dc
+		sourceLineageTag: created_at
+		summarizeBy: none
+		sourceColumn: created_at
+
+		annotation SummarizationSetBy = Automatic
+
 	partition agent_definitions = entity
 		mode: directLake
 		source

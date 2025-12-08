@@ -61,6 +61,27 @@ table chat_sessions
 
 		annotation SummarizationSetBy = Automatic
 
+	column total_agents_used
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 5e95a9df-1d8e-42d2-928a-e8c1128d2b52
+		sourceLineageTag: total_agents_used
+		summarizeBy: none
+		sourceColumn: total_agents_used
+
+		annotation SummarizationSetBy = Automatic
+
+	column primary_agent_type
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 415b94fb-623d-48dd-89e0-2d0cd61a184a
+		sourceLineageTag: primary_agent_type
+		summarizeBy: none
+		sourceColumn: primary_agent_type
+
+		annotation SummarizationSetBy = Automatic
+
 	partition chat_sessions = entity
 		mode: directLake
 		source
