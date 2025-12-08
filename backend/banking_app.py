@@ -376,7 +376,7 @@ def get_user_accounts(user_id: str) -> str:
         return f"Error retrieving accounts: {str(e)}"
 
 
-def get_transactions_summary(user_id: str, time_period: str = 'this month', account_name: str = None) -> str:
+def get_transactions_summary(user_id: str, time_period: str = 'this year', account_name: str = None) -> str:
     """
         Provides a *categorical summary* of the user's spending for general periods.
         - Valid 'time_period' values are: 'this month', 'last 6 months', 'this year'.
