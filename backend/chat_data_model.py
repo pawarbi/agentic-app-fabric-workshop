@@ -279,7 +279,7 @@ def init_chat_db(database):
                         message_id = msg['id']
                         if(message_id not in id_list):
                             print(f"Adding human message to chat history from agent: {agent_name}")
-                            self.add_human_message(message = msg, trace_id=trace_id, routing_step=step_number)
+                            self.add_human_message(message = msg, trace_id=trace_id, routing_step=0)
                             id_list.append(message_id)                      
                     elif msg['__class__'] == 'AIMessage':
                         message_id = msg['id']
@@ -424,6 +424,12 @@ def init_chat_db(database):
             """Log a tool result"""
             tool_name = message["name"]
                 # Auto-create tool if doesn't exist
+            agent_id = None
+            if agent_name!="system":
+                # Auto-create agent if doesn't exist
+                agent_id = self.get_or_create_agent_definition(
+                    agent_name=agent_name
+                )
             tool_id = self.get_or_create_tool_definition(
                 tool_name=tool_name,
                 description=f"Tool used by {agent_name or 'unknown agent'}"
@@ -435,6 +441,7 @@ def init_chat_db(database):
                 tool_id=tool_id,
                 tool_call_id=message["tool_call_id"],
                 trace_id=trace_id,
+                agent_id=agent_id,
                 agent_name=agent_name,
                 routing_step=routing_step,
                 tool_name=message["name"],

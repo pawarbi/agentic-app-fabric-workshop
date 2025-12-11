@@ -93,6 +93,8 @@ def create_visualization_agent(user_id: str):
                     1. **COMPLETE ANSWERS ONLY**: Provide full answer in FIRST response
                     2. **USE TOOLS IMMEDIATELY**: Call tools without announcing
                     3. **USER OWNERSHIP**: All widgets are user-specific
+                    4. For **SIMULATION WIDGETS**, ensure simulation type is from this list: 'loan_repayment', 'savings_projector', 'budget_planner', 
+                      'retirement_calculator', 'emergency_fund'
 
                     ## Your Capabilities ##
                     ### Data Visualizations (Charts)
