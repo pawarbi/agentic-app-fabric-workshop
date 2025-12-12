@@ -257,11 +257,10 @@ def init_chat_db(database):
             """Add all messages in a multi-agent trace to the chat history"""
             trace_id = str(uuid.uuid4())
             print(f"New multi-agent trace_id generated: {trace_id}")
-            # print(f"Agent used: {agent_used}, Task type: {task_type}")
-
             
             id_list = []
             prev_agent = "system"
+            skip_n = 0
             for i in range(len(serialized_messages)):
                 trace_step_msg = _to_json_primitive(serialized_messages[i])
                 agent_name = nodes_list[i]
@@ -272,17 +271,23 @@ def init_chat_db(database):
                 self._log_agent_routing(trace_id=trace_id, step_number=step_number,
                                         from_agent = prev_agent, current_agent=agent_name,
                                         execution_duration_ms=step_duration)
-                for msg in trace_step_msg:
-                    print(msg)
+                if(prev_agent=="system" and len(trace_step_msg)>2):  # for future traces, this escapes redundant history message logging
+                    skip_n = len(trace_step_msg)-2 
+
+                trace_step_msg_cut = trace_step_msg[skip_n:]
+                for msg in trace_step_msg_cut:
+                    print("-----------------> Adding messages for trace_id:", trace_id)
                     print(msg['__class__'])        
                     if msg['__class__'] == 'HumanMessage':
                         message_id = msg['id']
+                        print("human message id:", message_id)
                         if(message_id not in id_list):
                             print(f"Adding human message to chat history from agent: {agent_name}")
                             self.add_human_message(message = msg, trace_id=trace_id, routing_step=0)
                             id_list.append(message_id)                      
                     elif msg['__class__'] == 'AIMessage':
                         message_id = msg['id']
+                        print("AI message id:", message_id)
                         if msg.get("response_metadata", {}).get("finish_reason") != "tool_calls":
                             if(message_id not in id_list):
                                 print(f"Adding AI message to chat history from agent: {agent_name}")
@@ -292,7 +297,7 @@ def init_chat_db(database):
                             print(f"Adding tool call message to chat history from agent: {agent_name}")
                             tool_call_dict = self.add_tool_call_message( message=msg, trace_id=trace_id, agent_name=agent_name, routing_step=step_number)
                     elif msg['__class__'] == "ToolMessage":
-                        print(f"Adding tool message to chat history for agent: {agent_name}")
+                        print(f"Adding tool results message to chat history for agent: {agent_name}")
                         tool_result_dict = self.add_tool_result_message( message=msg, trace_id=trace_id, agent_name=agent_name, routing_step=step_number)
                         if 'tool_call_dict' in locals():
                             tool_call_dict.update(tool_result_dict)
@@ -336,7 +341,7 @@ def init_chat_db(database):
                            agent_name: str = None, routing_step: int = 1):
             """Add the AI agent message to chat history"""
             agent_id = None
-            print(message)
+            # print(message)
           
             if agent_name!="system":
                 # Auto-create agent if doesn't exist
@@ -385,9 +390,9 @@ def init_chat_db(database):
                 tool_name=tool_name,
                 description=f"Tool used by {agent_name or 'unknown agent'}"
             )
-            print("**********************************")
-            print("tool id:", tool_id)
-            print("agent id:", agent_id)
+            # print("**********************************")
+            # print("tool id:", tool_id)
+            # print("agent id:", agent_id)
 
             entry_message = ChatHistory(
                 message_id=message["id"],

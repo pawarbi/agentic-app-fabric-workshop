@@ -235,10 +235,10 @@ def call_analytics_service(endpoint, method='POST', data=None):
         call_duration = time.time() - call_start
         print(f"[analytics] Call to {url} completed in {call_duration:.2f}s "
               f"with status {getattr(response, 'status_code', 'N/A')}")
-        return response.json() if response.status_code < 400 else None
+        return response.json() if response.status_code < 400 else response.status_code
     except Exception as e:
         print(f"Analytics service call failed: {e}")
-        return None
+        return e
 
 # Add new user signup endpoint
 
@@ -774,7 +774,7 @@ def chatbot():
         print(f"[chatbot] Processed agent response in {process_duration:.2f}s")
         from shared.utils import _to_json_primitive, _serialize_messages
         
-        analytics_call_start = time.time()
+        
         node_names = []
         serialized_events = []
         time_list = []
@@ -788,10 +788,10 @@ def chatbot():
             serialized_events.append(serial_events)
             time_list.append(event_time)
 
-        for i in range(len(serialized_events)):
-            print(f"[Serialized Message] {_to_json_primitive(serialized_events[i])}")
-            print(f"[Node Name] {node_names[i]}")
-            print(f"[Event Time] {time_list[i]} ms")
+        # for i in range(len(serialized_events)):
+        #     print(f"[Serialized Message] {_to_json_primitive(serialized_events[i])}")
+        #     print(f"[Node Name] {node_names[i]}")
+        #     print(f"[Event Time] {time_list[i]} ms")
         # print("Serialized Messages for Analytics: ", message_list)
 
         analytics_data = {
@@ -802,8 +802,10 @@ def chatbot():
             "messages": serialized_events,
             "trace_duration": trace_duration
         }
+
+        analytics_call_start = time.time()
     
-        call_analytics_service("chat/log-multi-agent-trace", data=analytics_data)
+        res = call_analytics_service("chat/log-multi-agent-trace", data=analytics_data)
 
         analytics_call_duration = time.time() - analytics_call_start
         print(
