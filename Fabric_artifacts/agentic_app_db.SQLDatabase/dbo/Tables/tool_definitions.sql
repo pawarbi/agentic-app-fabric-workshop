@@ -6,7 +6,6 @@ CREATE TABLE [dbo].[tool_definitions] (
     [version]             VARCHAR (50)   DEFAULT ('1.0.0') NULL,
     [is_active]           BIT            DEFAULT ((1)) NULL,
     [cost_per_call_cents] INT            DEFAULT ((0)) NULL,
-    [agent_type]          VARCHAR (100)  NULL,
     [created_at]          DATETIME2 (7)  DEFAULT (getdate()) NULL,
     [updated_at]          DATETIME2 (7)  DEFAULT (getdate()) NULL,
     PRIMARY KEY CLUSTERED ([tool_id] ASC),

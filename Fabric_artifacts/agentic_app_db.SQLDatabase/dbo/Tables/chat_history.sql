@@ -5,7 +5,6 @@ CREATE TABLE [dbo].[chat_history] (
     [user_id]                VARCHAR (255)  NOT NULL,
     [agent_id]               VARCHAR (255)  NULL,
     [agent_name]             VARCHAR (255)  NULL,
-    [agent_type]             VARCHAR (100)  NULL,
     [routing_step]           INT            NULL,
     [message_type]           VARCHAR (50)   NOT NULL,
     [content]                NVARCHAR (MAX) NULL,
