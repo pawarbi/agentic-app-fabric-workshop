@@ -41,10 +41,6 @@ relationship f3b4cada-c019-f38f-4aab-26d5e15a5b61
 	fromColumn: transactions.from_account_id
 	toColumn: accounts.id
 
-relationship bd9d2f31-284b-b4fc-69af-2d3bc7693e65
-	fromColumn: UserAsks.session_id
-	toColumn: session_duration_date.session_id
-
 relationship fbf498c5-d943-8165-b52f-05fc9b9fcfbf
 	fromColumn: ai_widgets.user_id
 	toColumn: users.id
@@ -52,4 +48,8 @@ relationship fbf498c5-d943-8165-b52f-05fc9b9fcfbf
 relationship 739e8f9e-786c-d181-74b8-9f447b270cee
 	fromColumn: chat_history.trace_id
 	toColumn: ContentIssues.trace_id
+
+relationship 743ed9fa-5217-9853-2c00-f5f6d3df735d
+	fromColumn: chat_history.trace_id
+	toColumn: UserAsks.trace_id
 

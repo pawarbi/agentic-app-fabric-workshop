@@ -39,7 +39,7 @@ table session_duration_date
 		sourceProviderType: int
 		lineageTag: 29459382-b486-4999-96a9-240d6b3aece5
 		sourceLineageTag: sess_duration
-		summarizeBy: none
+		summarizeBy: sum
 		sourceColumn: sess_duration
 
 		annotation SummarizationSetBy = Automatic

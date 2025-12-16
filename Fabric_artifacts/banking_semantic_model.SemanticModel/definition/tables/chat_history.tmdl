@@ -68,10 +68,12 @@ table chat_history
 		sourceProviderType: int
 		lineageTag: 67b2dc93-550c-4f0d-9c29-e17eab85fb57
 		sourceLineageTag: routing_step
-		summarizeBy: sum
+		summarizeBy: none
 		sourceColumn: routing_step
 
-		annotation SummarizationSetBy = Automatic
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
 
 	column message_type
 		dataType: string
@@ -212,10 +214,12 @@ table chat_history
 		sourceProviderType: int
 		lineageTag: 5b53dece-76ac-4235-8165-d37582be2c22
 		sourceLineageTag: response_time_ms
-		summarizeBy: sum
+		summarizeBy: none
 		sourceColumn: response_time_ms
 
-		annotation SummarizationSetBy = Automatic
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
 
 	column trace_end
 		dataType: dateTime

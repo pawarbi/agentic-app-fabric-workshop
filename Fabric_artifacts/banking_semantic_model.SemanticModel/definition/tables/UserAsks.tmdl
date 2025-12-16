@@ -47,7 +47,7 @@ table UserAsks
 		sourceProviderType: numeric(17, 6)
 		lineageTag: 9494e6cc-ef6b-44ee-9d66-078334efd58d
 		sourceLineageTag: response_time_seconds
-		summarizeBy: sum
+		summarizeBy: none
 		sourceColumn: response_time_seconds
 
 		annotation SummarizationSetBy = Automatic
