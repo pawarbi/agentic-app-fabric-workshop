@@ -1,0 +1,107 @@
+table tool_definitions
+	lineageTag: cf6c6438-d8eb-4f11-a0aa-6bc91a6d7c1d
+	sourceLineageTag: [dbo].[tool_definitions]
+
+	column tool_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: eadd72e5-3651-4c2f-b036-16acd58ddd6e
+		sourceLineageTag: tool_id
+		summarizeBy: none
+		sourceColumn: tool_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column name
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 3925eb67-89fe-4a05-93d8-cdfc5b8bbb42
+		sourceLineageTag: name
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column description
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: dcdc3a8a-b707-4f4b-aa10-346511b901d6
+		sourceLineageTag: description
+		summarizeBy: none
+		sourceColumn: description
+
+		annotation SummarizationSetBy = Automatic
+
+	column input_schema
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: fd2d57d1-7b2d-48b1-a95f-279a3c161ca1
+		sourceLineageTag: input_schema
+		summarizeBy: none
+		sourceColumn: input_schema
+
+		annotation SummarizationSetBy = Automatic
+
+	column version
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 1511e2c7-7fdd-4ccd-8ed7-3d0a56c84578
+		sourceLineageTag: version
+		summarizeBy: none
+		sourceColumn: version
+
+		annotation SummarizationSetBy = Automatic
+
+	column is_active
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		sourceProviderType: bit
+		lineageTag: b08cfc59-89e2-4d11-89d9-d8051aa73ea6
+		sourceLineageTag: is_active
+		summarizeBy: none
+		sourceColumn: is_active
+
+		annotation SummarizationSetBy = Automatic
+
+	column cost_per_call_cents
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 7e052898-08ce-455d-8a60-291bb0aad339
+		sourceLineageTag: cost_per_call_cents
+		summarizeBy: none
+		sourceColumn: cost_per_call_cents
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_at
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: a77f3f3f-6c30-44d8-9db4-b31ddb4ad637
+		sourceLineageTag: created_at
+		summarizeBy: none
+		sourceColumn: created_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column updated_at
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: eb45afd3-c117-4814-a30f-3252fb64e97b
+		sourceLineageTag: updated_at
+		summarizeBy: none
+		sourceColumn: updated_at
+
+		annotation SummarizationSetBy = Automatic
+
+	partition tool_definitions = entity
+		mode: directLake
+		source
+			entityName: tool_definitions
+			schemaName: dbo
+			expressionSource: DatabaseQuery
+
+	annotation PBI_ResultType = Table
+

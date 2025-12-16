@@ -1,0 +1,116 @@
+table agent_traces
+	lineageTag: 443d2326-0535-4593-b911-81d7c389234e
+	sourceLineageTag: [dbo].[agent_traces]
+
+	column trace_step_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: f0432dbe-e154-4f8c-af8b-660d51373e3c
+		sourceLineageTag: trace_step_id
+		summarizeBy: none
+		sourceColumn: trace_step_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column session_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: b6b13412-75ec-4672-9397-dd1661b67514
+		sourceLineageTag: session_id
+		summarizeBy: none
+		sourceColumn: session_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column trace_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: bda19d8c-ddec-44d9-94f5-02959a358aa8
+		sourceLineageTag: trace_id
+		summarizeBy: none
+		sourceColumn: trace_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column user_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: f615cdf9-a21c-48d0-bb80-da7149b05415
+		sourceLineageTag: user_id
+		summarizeBy: none
+		sourceColumn: user_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column from_agent
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: d0cb5610-842a-42c1-a253-1293745db5d2
+		sourceLineageTag: from_agent
+		summarizeBy: none
+		sourceColumn: from_agent
+
+		annotation SummarizationSetBy = Automatic
+
+	column current_agent
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: ae60f8e8-e167-4f82-9cab-47b71e571751
+		sourceLineageTag: current_agent
+		summarizeBy: none
+		sourceColumn: current_agent
+
+		annotation SummarizationSetBy = Automatic
+
+	column step_order
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: bba5e702-92c6-41bb-8020-375f698e245f
+		sourceLineageTag: step_order
+		summarizeBy: sum
+		sourceColumn: step_order
+
+		annotation SummarizationSetBy = Automatic
+
+	column execution_duration_ms
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 90587b46-241f-43db-9ad2-4a6d0af439df
+		sourceLineageTag: execution_duration_ms
+		summarizeBy: sum
+		sourceColumn: execution_duration_ms
+
+		annotation SummarizationSetBy = Automatic
+
+	column success
+		dataType: boolean
+		formatString: """TRUE"";""TRUE"";""FALSE"""
+		sourceProviderType: bit
+		lineageTag: 6d9cb5cc-cc7a-444d-bbc6-e1c08fa532ac
+		sourceLineageTag: success
+		summarizeBy: none
+		sourceColumn: success
+
+		annotation SummarizationSetBy = Automatic
+
+	column error_message
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: acf762cd-b3f1-4314-84a0-7f886fdb2bac
+		sourceLineageTag: error_message
+		summarizeBy: none
+		sourceColumn: error_message
+
+		annotation SummarizationSetBy = Automatic
+
+	partition agent_traces = entity
+		mode: directLake
+		source
+			entityName: agent_traces
+			schemaName: dbo
+			expressionSource: DatabaseQuery
+
+	annotation PBI_ResultType = Table
+

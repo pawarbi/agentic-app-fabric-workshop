@@ -1,0 +1,243 @@
+table chat_history
+	lineageTag: 2dcc7f1e-e4e2-4919-a596-ac0aaa5bfb68
+	sourceLineageTag: [dbo].[chat_history]
+
+	column message_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: faef2212-4a49-40f9-83ac-9b3412269a94
+		sourceLineageTag: message_id
+		summarizeBy: none
+		sourceColumn: message_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column session_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: f294e1c4-a1b6-4b56-84f1-94ec67a9aba4
+		sourceLineageTag: session_id
+		summarizeBy: none
+		sourceColumn: session_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column trace_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: d77db9dc-e40d-4b7e-9b9d-5203fec99357
+		sourceLineageTag: trace_id
+		summarizeBy: none
+		sourceColumn: trace_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column user_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 76166969-4ba8-45f7-ab9c-295c7ce16a4e
+		sourceLineageTag: user_id
+		summarizeBy: none
+		sourceColumn: user_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column agent_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: f6836f29-3567-46e7-bbb5-47a46537c120
+		sourceLineageTag: agent_id
+		summarizeBy: none
+		sourceColumn: agent_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column agent_name
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 80b9205c-01e9-46a8-9bd6-dfd98a551d09
+		sourceLineageTag: agent_name
+		summarizeBy: none
+		sourceColumn: agent_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column routing_step
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 67b2dc93-550c-4f0d-9c29-e17eab85fb57
+		sourceLineageTag: routing_step
+		summarizeBy: none
+		sourceColumn: routing_step
+
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
+
+	column message_type
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: bf423710-ddaa-4bd0-b6a8-caffddcf9eec
+		sourceLineageTag: message_type
+		summarizeBy: none
+		sourceColumn: message_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column content
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 70ca8ccf-bbea-4d94-af77-53cb7cfe9305
+		sourceLineageTag: content
+		summarizeBy: none
+		sourceColumn: content
+
+		annotation SummarizationSetBy = Automatic
+
+	column model_name
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 0103f8f6-3284-4384-8327-5a2d59ba6da5
+		sourceLineageTag: model_name
+		summarizeBy: none
+		sourceColumn: model_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column content_filter_results
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 8551b3f1-d95e-48eb-b820-4c30d1d93d6d
+		sourceLineageTag: content_filter_results
+		summarizeBy: none
+		sourceColumn: content_filter_results
+
+		annotation SummarizationSetBy = Automatic
+
+	column total_tokens
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 60274610-0557-4fa5-bd1f-3ff884719eb3
+		sourceLineageTag: total_tokens
+		summarizeBy: sum
+		sourceColumn: total_tokens
+
+		annotation SummarizationSetBy = Automatic
+
+	column completion_tokens
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 6cf9f227-f25f-4b9a-b550-52bdd70bd936
+		sourceLineageTag: completion_tokens
+		summarizeBy: sum
+		sourceColumn: completion_tokens
+
+		annotation SummarizationSetBy = Automatic
+
+	column prompt_tokens
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 70236688-72fa-4867-931f-c6613a8bd5b0
+		sourceLineageTag: prompt_tokens
+		summarizeBy: sum
+		sourceColumn: prompt_tokens
+
+		annotation SummarizationSetBy = Automatic
+
+	column tool_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 1032ed36-166e-4c01-ba3a-bc9509e3460d
+		sourceLineageTag: tool_id
+		summarizeBy: none
+		sourceColumn: tool_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column tool_name
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 18e1f9da-95c9-4348-8124-cc2eba3f9a02
+		sourceLineageTag: tool_name
+		summarizeBy: none
+		sourceColumn: tool_name
+
+		annotation SummarizationSetBy = Automatic
+
+	column tool_input
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: f3b3368c-c091-43b6-8bb0-bf5cf2595888
+		sourceLineageTag: tool_input
+		summarizeBy: none
+		sourceColumn: tool_input
+
+		annotation SummarizationSetBy = Automatic
+
+	column tool_output
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 5cf7946f-4e4b-4971-b5dd-518a775bd6e9
+		sourceLineageTag: tool_output
+		summarizeBy: none
+		sourceColumn: tool_output
+
+		annotation SummarizationSetBy = Automatic
+
+	column tool_call_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 8f3ec43f-dfe8-4e59-b53d-7f1378b74c9a
+		sourceLineageTag: tool_call_id
+		summarizeBy: none
+		sourceColumn: tool_call_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column finish_reason
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: dbe8a604-f776-4b99-b816-bb5cec2f9956
+		sourceLineageTag: finish_reason
+		summarizeBy: none
+		sourceColumn: finish_reason
+
+		annotation SummarizationSetBy = Automatic
+
+	column response_time_ms
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 5b53dece-76ac-4235-8165-d37582be2c22
+		sourceLineageTag: response_time_ms
+		summarizeBy: none
+		sourceColumn: response_time_ms
+
+		changedProperty = SummarizeBy
+
+		annotation SummarizationSetBy = User
+
+	column trace_end
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: c03ac582-bd5c-4ac0-a878-e8c43356f438
+		sourceLineageTag: trace_end
+		summarizeBy: none
+		sourceColumn: trace_end
+
+		annotation SummarizationSetBy = Automatic
+
+	partition chat_history = entity
+		mode: directLake
+		source
+			entityName: chat_history
+			schemaName: dbo
+			expressionSource: DatabaseQuery
+
+	annotation PBI_ResultType = Table
+

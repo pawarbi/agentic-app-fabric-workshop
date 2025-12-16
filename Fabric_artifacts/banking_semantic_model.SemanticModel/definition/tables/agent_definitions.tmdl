@@ -1,0 +1,74 @@
+table agent_definitions
+	lineageTag: 63a78910-32b6-41b1-87fb-505e7b9c2b66
+	sourceLineageTag: [dbo].[agent_definitions]
+
+	column agent_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: bca0dae8-0408-48fb-ab3e-f4cabcf6e439
+		sourceLineageTag: agent_id
+		summarizeBy: none
+		sourceColumn: agent_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column name
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 69215f10-beb7-41af-990e-85b598a1db8e
+		sourceLineageTag: name
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column description
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: e77b94e4-fd65-4a00-8195-6a206dfebb54
+		sourceLineageTag: description
+		summarizeBy: none
+		sourceColumn: description
+
+		annotation SummarizationSetBy = Automatic
+
+	column llm_config
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: c3ed8af0-14f2-4398-a06f-d77a86642073
+		sourceLineageTag: llm_config
+		summarizeBy: none
+		sourceColumn: llm_config
+
+		annotation SummarizationSetBy = Automatic
+
+	column prompt_template
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 206a3e35-632b-4041-abfd-852b2e5889ec
+		sourceLineageTag: prompt_template
+		summarizeBy: none
+		sourceColumn: prompt_template
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_at
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: 1b056ee2-56ed-4567-baf4-87a5af6ce0a7
+		sourceLineageTag: created_at
+		summarizeBy: none
+		sourceColumn: created_at
+
+		annotation SummarizationSetBy = Automatic
+
+	partition agent_definitions = entity
+		mode: directLake
+		source
+			entityName: agent_definitions
+			schemaName: dbo
+			expressionSource: DatabaseQuery
+
+	annotation PBI_ResultType = Table
+

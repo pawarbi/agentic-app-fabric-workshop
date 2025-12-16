@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "DataAgent",
+    "displayName": "Banking_DataAgent"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "c7e65d00-b7d8-978a-452f-d2f0c32e9c56"
+  }
+}

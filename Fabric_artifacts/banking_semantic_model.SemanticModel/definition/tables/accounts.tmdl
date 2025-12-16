@@ -1,0 +1,87 @@
+table accounts
+	lineageTag: 7bc15b2b-0ede-4bf1-b99f-44e568e3d1ed
+	sourceLineageTag: [dbo].[accounts]
+
+	column id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 071e71d5-c059-44e8-83a0-864c91b600bf
+		sourceLineageTag: id
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column user_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: babd9896-da5b-43ba-9225-872654a107e2
+		sourceLineageTag: user_id
+		summarizeBy: none
+		sourceColumn: user_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column account_number
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: a8f0d54b-b7cd-45b0-94e5-4522f9106c3d
+		sourceLineageTag: account_number
+		summarizeBy: none
+		sourceColumn: account_number
+
+		annotation SummarizationSetBy = Automatic
+
+	column account_type
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 7eecc304-ea5f-4980-8cd7-530314750f43
+		sourceLineageTag: account_type
+		summarizeBy: none
+		sourceColumn: account_type
+
+		annotation SummarizationSetBy = Automatic
+
+	column balance
+		dataType: decimal
+		formatString: \$#,0.###############;(\$#,0.###############);\$#,0.###############
+		sourceProviderType: decimal(15, 2)
+		lineageTag: 07053007-7705-462b-ada6-9d13247ab794
+		sourceLineageTag: balance
+		summarizeBy: sum
+		sourceColumn: balance
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column name
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 1119ee00-33e9-4762-8a07-7b5fe2aee03a
+		sourceLineageTag: name
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_at
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: 1a45e854-b564-4946-8a1d-1e9553a7eff7
+		sourceLineageTag: created_at
+		summarizeBy: none
+		sourceColumn: created_at
+
+		annotation SummarizationSetBy = Automatic
+
+	partition accounts = entity
+		mode: directLake
+		source
+			entityName: accounts
+			schemaName: dbo
+			expressionSource: DatabaseQuery
+
+	annotation PBI_ResultType = Table
+

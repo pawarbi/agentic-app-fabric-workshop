@@ -1,0 +1,97 @@
+table transactions
+	lineageTag: d2261b15-caeb-421b-8c39-4bf546de2bb4
+	sourceLineageTag: [dbo].[transactions]
+
+	column id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 06805433-bca0-4fc1-817a-bbfef9b9d934
+		sourceLineageTag: id
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column from_account_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: bddc35db-26c0-475e-aabc-28f7b3beba96
+		sourceLineageTag: from_account_id
+		summarizeBy: none
+		sourceColumn: from_account_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column to_account_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: cbb78888-e784-436a-bda5-9c0e98dcb64c
+		sourceLineageTag: to_account_id
+		summarizeBy: none
+		sourceColumn: to_account_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column amount
+		dataType: decimal
+		formatString: \$#,0.###############;(\$#,0.###############);\$#,0.###############
+		sourceProviderType: decimal(15, 2)
+		lineageTag: b56ddcdd-e5ef-428f-9300-31455c0816cc
+		sourceLineageTag: amount
+		summarizeBy: sum
+		sourceColumn: amount
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"currencyCulture":"en-US"}
+
+	column type
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: b81dde3d-ee6a-460c-9a9c-8edfc241e51d
+		sourceLineageTag: type
+		summarizeBy: none
+		sourceColumn: type
+
+		annotation SummarizationSetBy = Automatic
+
+	column category
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 3012146c-485d-494f-931b-3dc4fef19e5e
+		sourceLineageTag: category
+		summarizeBy: none
+		sourceColumn: category
+
+		annotation SummarizationSetBy = Automatic
+
+	column status
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 39fd7989-5bf8-47de-9437-451646847e01
+		sourceLineageTag: status
+		summarizeBy: none
+		sourceColumn: status
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_at
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: 95337fe8-030d-4a90-ba84-09af8ba926da
+		sourceLineageTag: created_at
+		summarizeBy: none
+		sourceColumn: created_at
+
+		annotation SummarizationSetBy = Automatic
+
+	partition transactions = entity
+		mode: directLake
+		source
+			entityName: transactions
+			schemaName: dbo
+			expressionSource: DatabaseQuery
+
+	annotation PBI_ResultType = Table
+

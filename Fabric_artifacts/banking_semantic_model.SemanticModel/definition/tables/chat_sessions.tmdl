@@ -1,0 +1,97 @@
+table chat_sessions
+	lineageTag: 7bf6d200-7fbf-4dec-be37-1f6418eb66b3
+	sourceLineageTag: [dbo].[chat_sessions]
+
+	column session_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: f276339d-8b6d-4c7a-9241-3c47aaa0de31
+		sourceLineageTag: session_id
+		summarizeBy: none
+		sourceColumn: session_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column user_id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 42cbec39-1730-4e1a-bc6d-d6bc502b5493
+		sourceLineageTag: user_id
+		summarizeBy: none
+		sourceColumn: user_id
+
+		annotation SummarizationSetBy = Automatic
+
+	column title
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: ea97808c-9991-463d-8812-660559cc8df4
+		sourceLineageTag: title
+		summarizeBy: none
+		sourceColumn: title
+
+		annotation SummarizationSetBy = Automatic
+
+	column total_agents_used
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 7b093c17-eecb-47c9-a3e4-32a66e0e7dae
+		sourceLineageTag: total_agents_used
+		summarizeBy: sum
+		sourceColumn: total_agents_used
+
+		annotation SummarizationSetBy = Automatic
+
+	column agent_names_used
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: e37f74e4-7422-4e32-b559-5c4a3cabdf96
+		sourceLineageTag: agent_names_used
+		summarizeBy: none
+		sourceColumn: agent_names_used
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_at
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: f27912f9-a2aa-4165-83ea-c050db357215
+		sourceLineageTag: created_at
+		summarizeBy: none
+		sourceColumn: created_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column updated_at
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: 2e020a1d-d042-4473-bbd6-373c76aa1e3c
+		sourceLineageTag: updated_at
+		summarizeBy: none
+		sourceColumn: updated_at
+
+		annotation SummarizationSetBy = Automatic
+
+	column session_duration_ms
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		lineageTag: 8cbbfc3a-7dfe-44ad-9606-fceb664e55b7
+		sourceLineageTag: session_duration_ms
+		summarizeBy: sum
+		sourceColumn: session_duration_ms
+
+		annotation SummarizationSetBy = Automatic
+
+	partition chat_sessions = entity
+		mode: directLake
+		source
+			entityName: chat_sessions
+			schemaName: dbo
+			expressionSource: DatabaseQuery
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,54 @@
+table users
+	lineageTag: 19b565cf-aded-4436-9213-58d7fa42c86c
+	sourceLineageTag: [dbo].[users]
+
+	column id
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: 4be79bc6-50b9-4f46-a4b7-61e396f0dfd3
+		sourceLineageTag: id
+		summarizeBy: none
+		sourceColumn: id
+
+		annotation SummarizationSetBy = Automatic
+
+	column name
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: afa4d307-e25c-44fb-881c-99cef2d2afe5
+		sourceLineageTag: name
+		summarizeBy: none
+		sourceColumn: name
+
+		annotation SummarizationSetBy = Automatic
+
+	column email
+		dataType: string
+		sourceProviderType: varchar(8000)
+		lineageTag: b46b8f02-66a2-48e2-bed7-021627812625
+		sourceLineageTag: email
+		summarizeBy: none
+		sourceColumn: email
+
+		annotation SummarizationSetBy = Automatic
+
+	column created_at
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime2
+		lineageTag: 643ea1e6-1408-407d-8bfb-60f99d5ac113
+		sourceLineageTag: created_at
+		summarizeBy: none
+		sourceColumn: created_at
+
+		annotation SummarizationSetBy = Automatic
+
+	partition users = entity
+		mode: directLake
+		source
+			entityName: users
+			schemaName: dbo
+			expressionSource: DatabaseQuery
+
+	annotation PBI_ResultType = Table
+
