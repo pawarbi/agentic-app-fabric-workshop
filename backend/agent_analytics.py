@@ -204,7 +204,7 @@ def log_content_safety_violation():
         print(f"[Content Safety Handler] Failed to log safety violation: {log_error}")
         import traceback
         traceback.print_exc()
-        return jsonify({"error": str(e), "traceback": traceback.format_exc()}), 500
+        return jsonify({"error": str(log_error), "traceback": traceback.format_exc()}), 500
     
 # Endpoint for logging messages from banking service (single agent)
 @app.route('/api/chat/log-trace', methods=['POST'])

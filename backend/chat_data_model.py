@@ -39,67 +39,58 @@ def handle_content_safety_error(error, session_id: str, user_id: str, trace_id: 
         trace_id = str(uuid.uuid4())
     
     # Extract content safety information from the error
-    content_filter_info = None
     error_message = str(error)
     filter_category = "unknown"
-    
+
+    content_filter_result_mock= {
+        "hate": {
+            "filtered": False,
+            "severity": 'safe'
+        },
+        "jailbreak": {
+            "filtered": False,
+            "detected": False
+        },
+        "self_harm": {
+            "filtered": False,
+            "severity": 'safe'
+        },
+        "sexual": {
+            "filtered": False,
+            "severity": 'safe'
+        },
+        "violence": {
+            "filtered": False,
+            "severity": 'safe'
+        }
+    }
     try:
         # Azure OpenAI BadRequestError typically contains JSON in the message
-        error_body = getattr(error, 'body', None)
-        
-        if error_body and isinstance(error_body, dict):
-            # Extract content filter results from error body
-            error_details = error_body.get('error', {})
-            innererror = error_details.get('innererror', {})
-            content_filter_result = innererror.get('content_filter_result', {})
-            
-            if content_filter_result:
-                content_filter_info = content_filter_result
-                
-                # Determine which filter was triggered
-                for category in ['hate', 'self_harm', 'sexual', 'violence', 'jailbreak']:
-                    if content_filter_result.get(category, {}).get('filtered', False):
-                        filter_category = category
-                        break
-        
-        # Fallback: parse error message string
-        print("ERROR MESSAGE:", error_message.lower())
-        if not content_filter_info and 'content_filter' in error_message.lower():
-            # Try to extract category from error message
-            for category in ['hate', 'self_harm', 'sexual', 'violence', 'jailbreak']:
-                if category in error_message.lower():
-                    filter_category = category
-                    if(category=="jailbreak"):
-                        content_filter_info = {
-                            category: {
-                                "filtered": True,
-                                "detected": True,
-
-                            }
+        filter_trigger_list = ["'hate': {'filtered': True",
+                               "'jailbreak': {'filtered': True",
+                               "'self_harm': {'filtered': True",
+                               "'sexual': {'filtered': True",
+                               "'violence': {'filtered': True"]
+        if "The response was filtered" in error_message:
+            # Determine which filter was triggered
+            for i in range(len(filter_trigger_list)):
+                print(filter_trigger_list[i])
+                if filter_trigger_list[i] in error_message:
+                    filter_category = filter_trigger_list[i].split(":")[0].replace("'", "")
+                    print("FILTER CATEGORY DETECTED:", filter_category)
+                    if(filter_category=="jailbreak"):
+                        content_filter_result_mock[filter_category] = {
+                            "filtered": True,
+                            "detected": True,
                         }
                     else:
-                        content_filter_info = {
-                            category: {
-                                "filtered": True,
-                                "severity": "high"
-                            }
+                        content_filter_result_mock[filter_category] = {
+                            "filtered": True,
+                            "severity": "high"
                         }
-                else:
-                    if(category=="jailbreak"):
-                        content_filter_info = {
-                            category: {
-                                "filtered": False,
-                                "detected": False,
+        # print("CONTENT FILTER RESULT MOCK:", content_filter_result_mock)
 
-                            }
-                        }
-                    else:
-                        content_filter_info = {
-                            category: {
-                                "filtered": False,
-                                "severity": "safe"
-                            }
-                        }
+
 
     except Exception as parse_error:
         print(f"[Content Safety Handler] Error parsing content filter details: {parse_error}")
@@ -127,11 +118,7 @@ def handle_content_safety_error(error, session_id: str, user_id: str, trace_id: 
                 "prompt_tokens": 0
             },
             "prompt_filter_results": [{
-                "content_filter_results": content_filter_info or {
-                    "error": True,
-                    "category": filter_category,
-                    "raw_error": error_message[:500]  # Truncate long error messages
-                }
+                "content_filter_results": content_filter_result_mock
             }]
         },
         "additional_kwargs": {}
@@ -139,7 +126,7 @@ def handle_content_safety_error(error, session_id: str, user_id: str, trace_id: 
     
     print(f"[Content Safety Handler] Generated safety response for {filter_category} violation")
     print(f"[Content Safety Handler] Trace ID: {trace_id}")
-    print(f"[Content Safety Handler] Content filter details: {content_filter_info}")
+    print(f"[Content Safety Handler] Content filter details: {content_filter_result_mock}")
     
     return {
         "trace_id": trace_id,
@@ -149,7 +136,7 @@ def handle_content_safety_error(error, session_id: str, user_id: str, trace_id: 
         "agent_name": "coordinator",
         "user_message": user_message,
         "filter_category": filter_category,
-        "content_filter_info": content_filter_info
+        "content_filter_info": content_filter_result_mock
     }
 
 

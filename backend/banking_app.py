@@ -810,7 +810,7 @@ def chatbot():
                                                         session_id=session_id,
                                                         user_id=user_id,
                                                         trace_duration=trace_duration)
-            # step1- uncomment to test simulate extremely sensitive content. this just triggers the exception handling
+            # step1-  test simulate extremely sensitive content. First uncomment below to cause exception -->
             # result = res_dict["content"]  
             _ = call_analytics_service("chat/log-multi-agent-trace", data=analytics_data)
 
@@ -819,13 +819,15 @@ def chatbot():
         except Exception as e:
             end_time = time.time()
             trace_duration = int((end_time - trace_start_time) * 1000)
-            # step2- uncomment to test extremely sensitive content
+            
+            # step2- uncomment below 3 lines to test extremely sensitive content -->
             # from unsafe_content_simulator import  simulate_safety_error 
-            #simulate_error = simulate_safety_error(jailbreak_detected=True, jailbreak_filtered=True)
-            #e=simulate_error.response
+            # simulate_error = simulate_safety_error(jailbreak_detected=True, jailbreak_filtered=True)
+            # e=str(simulate_error.message)
+
             analytics_call_start = time.time()
              
-            result_dict = handle_content_safety_error(session_id=session_id, user_id=user_id, error = str(e), user_message=user_message)
+            result_dict = handle_content_safety_error(session_id=session_id, user_id=user_id, error = e, user_message=user_message)
             result = result_dict["message"].get("content")
             _ = call_analytics_service("chat/log-content-safety-violation", data=result_dict)
             analytics_call_duration = int((time.time() - analytics_call_start) * 1000)
