@@ -2,7 +2,7 @@
 
 #### NOTE: The main branch was last updated on: 🟢2025-12-18🟢
 
-$$\color{red}{The\ new\ update\ introduces\ major\ changes\ to\ both\ the\ bnanking\ app\ and\ the\ analytics\ service\.}$$
+$$\color{red}{The\ new\ update\ introduces\ major\ changes\ to\ both\ the\ banking\ app\ and\ the\ analytics\ service\.}$$
 $$\color{red}{Ensure\ to\ update\ your\ main\ and\ also\ redeploy\ Fabric\ artifacts\.}$$
 
 **Agentic Banking App** is an interactive web application designed to simulate a modern banking dashboard. Its primary purpose is to serve as an educational tool, demonstrating:
