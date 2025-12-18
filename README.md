@@ -18,12 +18,11 @@ Through a hands-on interface, users can see the practical difference between wri
 ### Banking Application
 
 
-
 **The Banking Dashboard**: A central hub to view account balance and navigate the application. Below are the core capabilities:
 - **Transactions (OLTP)**: View a real-time list of all past transactions. This demonstrates a typical high-volume, read-heavy OLTP workload.
 - **Money Transfer (OLTP)**: Perform transfers between accounts. This showcases a classic atomic, write-heavy OLTP operation that must be fast and reliable.
 - **Financial Analytics (OLAP)**: Explore an analytics dashboard with charts and summaries of spending habits. This represents an OLAP workload, running complex, aggregate queries over a large dataset.
-- **Generative UI**: User can ask for a personalized interactive visualization/simulation. The custom visualizaton will be generated via the relevant agent, and the relevant configuration will be saved in the database for that user profile so that it can be retrieved every time this user logs in. Generated visualizations can also be edited upon user request.
+- **Generative UI**: User can ask for a personalized interactive visualization/simulations to be created on the fly! The custom visualizaton will be generated via an expert agent, and the relevant configuration will be saved in the database for that user profile so that it can be retrieved every time this user logs in. Generated visualizations can also be edited upon user request.
 
 ### How it works:
 - **Multi-Agent Workload**: The app is built on top of a multi-agent solution in Langgraph. There are four distinct agents:
@@ -94,16 +93,16 @@ cd sql-agentic-app-with-fabric  # root folder of the repo
 
 - If you do not already have access to a Fabric capacity, you can easily enable a Microsoft Fabric trial capacity for free which will give you free access for 60 days to all features needed for this demo: https://learn.microsoft.com/en-us/fabric/fundamentals/fabric-trial
 
-- In Home tab (with Welcome to Fabric title), click on "New workspace" and proceed to create your workspace for this demo.
+- In Home tab of your Fabric account (with Welcome to Fabric title), click on "New workspace" and proceed to create your workspace for this demo.
 
 ### 3. Automatic set up of all required Fabric resources and artifacts 
 To easily set up your Fabric workspace with all required artifacts for this demo, you need to link your Fabric workspace with your repo. 
 
 You only need to do below steps one time.
 
-#### Step 1: Set up your database
+#### Step 1: Set up your database in Fabric
 
-1. Go to your workspace and click on "Workspace settings" on top right of the page
+1. In Fabric, go to your workspace and click on "Workspace settings" on top right of the page.
 2. Go to Git integration tab -> Click on GitHub tile and click on "Add account"
 3. Choose a name, paste your fine grained personal access token for the private repo you just created (don't know how to generate this? there are a lot of tutorials online such as: https://thetechdarts.com/generate-personal-access-token-in-github/)
 4. paste the repo url and connect
@@ -114,11 +113,11 @@ You only need to do below steps one time.
 #### Step 2: Re-deploy to connect semantic model to the right database endpoint
 
 - In the first step, data artifacts were deployed, but the semantic model needs to be redeloyed by provding the correct database endpoint parameters which you would need to obtain and provide manually as below:
-1. Obtain below values (copy and keep somewhere)
+1. Obtain below values from Fabric (copy and keep somewhere)
     - **SQL server connection string**: First, go to the **SQL analytics endpoint** of the **agentic_lake**, go to settings -> SQL endpoint -> copy value under SQL connection string  (paste it somewhere to keep it for now)
     - **Lakehouse analytics GUID**: Look at the address bar, you should see something like this: *https://app.fabric.microsoft.com/groups/[first string]/mirroredwarehouses (or lakehouses)/**[second string]**?experience=fabric-developer*
         - copy the value you see in position of second string. 
-2. Now go to: **Fabric_artifacts\agentic_semantic_model.SemanticModel\definition**, open the file called **expressions.tmdl** and replace the values with the ones you just retrieved. *Save the file and push it to your repo*.
+2. Now in your private Git repo, go to: **Fabric_artifacts\agentic_semantic_model.SemanticModel\definition**, open the file called **expressions.tmdl** and replace the values with the ones you just retrieved. *Save the file and commit/push it to your repo*.
 
 3. Now go back to your Fabric workspace and trigger an update via Source Control
 
@@ -181,11 +180,11 @@ npm install
 
 ### 4. Run the Application
 
-Open two terninal windows.
+Open **two** terminal windows.
 
 #### Terminal 1: Start Backend
 
-Run below (**ensure you have your virtual environment activated for this!**  )
+From backend folder, run below in terminal (**ensure you have your virtual environment activated for this!**  )
 
 ```bash
 python launcher.py
