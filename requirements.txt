@@ -16,3 +16,4 @@ mcp
 gunicorn
 Werkzeug
 azure-identity
+azure-eventhub==5.11.5
