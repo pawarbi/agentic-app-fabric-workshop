@@ -1,0 +1,81 @@
+{
+  "sources": [
+    {
+      "id": "3a7bb8aa-3909-4366-9492-c4d6e41dc9e3",
+      "name": "CustomEndpoint",
+      "type": "CustomEndpoint",
+      "properties": {}
+    }
+  ],
+  "destinations": [
+    {
+      "id": "135826ac-fef6-420b-b13f-474e6c9dc57e",
+      "name": "StreamActivator",
+      "type": "Activator",
+      "properties": {
+        "workspaceId": "00000000-0000-0000-0000-000000000000",
+        "itemId": "491e557b-6002-927c-4849-0477f467b979",
+        "inputSerialization": {
+          "type": "Json",
+          "properties": {
+            "encoding": "UTF8"
+          }
+        }
+      },
+      "inputNodes": [
+        {
+          "name": "agenticstream-stream"
+        }
+      ],
+      "inputSchemas": [
+        {
+          "name": "agenticstream-stream",
+          "schema": {
+            "columns": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "ea4cfc01-1b15-4d6e-9c31-aeaf6505c8f1",
+      "name": "dbf920fd-ce52-465f-b165-5414a7805a05",
+      "type": "Eventhouse",
+      "properties": {
+        "dataIngestionMode": "DirectIngestion",
+        "workspaceId": "00000000-0000-0000-0000-000000000000",
+        "itemId": "cc640c3d-f162-8967-4492-09df04faf116",
+        "tableName": "agentic_events",
+        "connectionName": "agentic_stream_app_events-agentic_events",
+        "mappingRuleName": "agentic_events_mapping"
+      },
+      "inputNodes": [
+        {
+          "name": "agenticstream-stream"
+        }
+      ],
+      "inputSchemas": [
+        {
+          "name": "agenticstream-stream",
+          "schema": {
+            "columns": []
+          }
+        }
+      ]
+    }
+  ],
+  "streams": [
+    {
+      "id": "ade894f6-1e23-466c-adbe-834db568d957",
+      "name": "agenticstream-stream",
+      "type": "DefaultStream",
+      "properties": {},
+      "inputNodes": [
+        {
+          "name": "CustomEndpoint"
+        }
+      ]
+    }
+  ],
+  "operators": [],
+  "compatibilityLevel": "1.1"
+}

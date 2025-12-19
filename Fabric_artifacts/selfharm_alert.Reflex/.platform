@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "Reflex",
+    "displayName": "selfharm_alert"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "cb7eb028-b8b0-813d-4d09-55cbe740908f"
+  }
+}

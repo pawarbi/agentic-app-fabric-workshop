@@ -1,0 +1,70 @@
+[
+  {
+    "uniqueIdentifier": "224d55ca-8988-464e-8126-e476d417cd01",
+    "payload": {
+      "name": "ContentSafetyMonitoring",
+      "type": "kqlQueries"
+    },
+    "type": "container-v1"
+  },
+  {
+    "uniqueIdentifier": "20a91b93-0ae8-43e5-bbca-dbeded782f8e",
+    "payload": {
+      "name": "app_events event",
+      "runSettings": {
+        "executionIntervalInSeconds": 300
+      },
+      "query": {
+        "queryString": "// Please enter your KQL query (Example):\n// <table name>\n// | where <datetime column> between (['_startTime'] .. ['_endTime']) // Time range filtering\n// | take 100\nagentic_events\n| where filter_category contains \"self_harm\"\n| extend DateTime = todatetime(timestamp)\n| summarize eventCount = count() by DateTime\n| project DateTime, eventCount"
+      },
+      "eventhouseItem": {
+        "itemId": "cc640c3d-f162-8967-4492-09df04faf116",
+        "workspaceId": "00000000-0000-0000-0000-000000000000",
+        "itemType": "KustoDatabase"
+      },
+      "queryParameters": [],
+      "metadata": {
+        "workspaceId": "9a15b4ee-931b-4540-9800-7908786bc6cd",
+        "measureName": "eventCount",
+        "dashboardId": "2e401155-da61-4ce2-8a6c-17ac8dbd75ea",
+        "visualId": "f9b9a49a-e9ab-43bb-98cb-2abb814765d8"
+      },
+      "parentContainer": {
+        "targetUniqueIdentifier": "224d55ca-8988-464e-8126-e476d417cd01"
+      }
+    },
+    "type": "kqlSource-v1"
+  },
+  {
+    "uniqueIdentifier": "e14953aa-0227-4617-a4f4-b8fc7b6ecfb7",
+    "payload": {
+      "name": "app_events event",
+      "parentContainer": {
+        "targetUniqueIdentifier": "224d55ca-8988-464e-8126-e476d417cd01"
+      },
+      "definition": {
+        "type": "Event",
+        "instance": "{\"templateId\":\"SourceEvent\",\"templateVersion\":\"1.1\",\"steps\":[{\"name\":\"SourceEventStep\",\"id\":\"6d524569-b5f6-4eeb-9edf-db95373cfe0f\",\"rows\":[{\"name\":\"SourceSelector\",\"kind\":\"SourceReference\",\"arguments\":[{\"name\":\"entityId\",\"type\":\"string\",\"value\":\"20a91b93-0ae8-43e5-bbca-dbeded782f8e\"}]}]}]}"
+      }
+    },
+    "type": "timeSeriesView-v1"
+  },
+  {
+    "uniqueIdentifier": "df9bc360-955e-46f3-8085-7773992ec4a0",
+    "payload": {
+      "name": "app_events alert",
+      "parentContainer": {
+        "targetUniqueIdentifier": "224d55ca-8988-464e-8126-e476d417cd01"
+      },
+      "definition": {
+        "type": "Rule",
+        "instance": "{\"templateId\":\"EventTrigger\",\"templateVersion\":\"1.2.3\",\"steps\":[{\"name\":\"FieldsDefaultsStep\",\"id\":\"175a870c-eb20-4507-bf12-f6dd5273d78a\",\"rows\":[{\"name\":\"EventSelector\",\"kind\":\"Event\",\"arguments\":[{\"kind\":\"EventReference\",\"type\":\"complex\",\"arguments\":[{\"name\":\"entityId\",\"type\":\"string\",\"value\":\"e14953aa-0227-4617-a4f4-b8fc7b6ecfb7\"}],\"name\":\"event\"}]}]},{\"name\":\"EventDetectStep\",\"id\":\"ba9ebacf-fd40-498f-b96f-6b57a574693d\",\"rows\":[{\"name\":\"EventFieldSelector\",\"kind\":\"EventField\",\"arguments\":[{\"name\":\"fieldName\",\"type\":\"string\",\"value\":\"eventCount\"}]},{\"name\":\"NumberValueCondition\",\"kind\":\"NumberValueCondition\",\"arguments\":[{\"name\":\"op\",\"type\":\"string\",\"value\":\"IsGreaterThan\"},{\"name\":\"threshold\",\"type\":\"number\",\"value\":0}]}]},{\"name\":\"ActStep\",\"id\":\"c8a093e6-e896-4520-83fa-62c5e8952319\",\"rows\":[{\"arguments\":[{\"name\":\"messageLocale\",\"type\":\"string\",\"value\":\"en-us\"},{\"name\":\"recipients\",\"type\":\"array\",\"values\":[{\"type\":\"string\",\"value\":\"test@mail.com\"}]},{\"name\":\"headline\",\"type\":\"array\",\"values\":[{\"type\":\"string\",\"value\":\"Activator alert app_events alert\"}]},{\"name\":\"optionalMessage\",\"type\":\"array\",\"values\":[{\"type\":\"string\",\"value\":\"The condition for 'app_events alert' has been met\"}]},{\"name\":\"additionalInformation\",\"type\":\"array\",\"values\":[{\"arguments\":[{\"name\":\"name\",\"type\":\"string\",\"value\":\"DateTime\"},{\"arguments\":[{\"name\":\"fieldName\",\"type\":\"string\",\"value\":\"DateTime\"}],\"kind\":\"EventFieldReference\",\"name\":\"reference\",\"type\":\"complexReference\"}],\"kind\":\"NameReferencePair\",\"type\":\"complex\"}]}],\"kind\":\"TeamsMessage\",\"name\":\"TeamsBinding\"}]}]}",
+        "settings": {
+          "shouldRun": true,
+          "shouldApplyRuleOnUpdate": true
+        }
+      }
+    },
+    "type": "timeSeriesView-v1"
+  }
+]
