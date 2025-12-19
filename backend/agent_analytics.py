@@ -239,6 +239,7 @@ def initialize_analytics_app():
 
 
 import json
+from datetime import datetime
 from azure.eventhub import EventData
 from shared.utils import _to_json_primitive
 def sendToEventsHub(jsonEvent, producer_events):
@@ -248,9 +249,11 @@ def sendToEventsHub(jsonEvent, producer_events):
 
 def stream_load(result_dict: dict, user_msg: str,
                  producer_events, failed_response: bool = False):
+    event_time = datetime.now().isoformat()
     try:
         if failed_response:
             stream_dict = {
+                "timestamp": event_time,
                 "trace_id": result_dict.get("trace_id"),
                 "session_id": result_dict.get("session_id"),
                 "user_id": result_dict.get("user_id"),
@@ -265,8 +268,10 @@ def stream_load(result_dict: dict, user_msg: str,
             
 
         else:
+            
             for i in range(len(result_dict.get("messages", []))):
                 stream_dict = {
+                "timestamp": event_time,
                 "trace_id": result_dict.get("trace_id"),
                 "session_id": result_dict.get("session_id"),
                 "user_id": result_dict.get("user_id"),
@@ -283,13 +288,3 @@ def stream_load(result_dict: dict, user_msg: str,
     except Exception as e:
         print("Error in stream load to Event Hub:", str(e))
         return False
-# eventHubConnString = os.getenv("FABRIC_EVENT_HUB_CONNECTION_STRING")
-# eventHubName = os.getenv("FABRIC_EVENT_HUB_NAME")
-
-# producer_events = EventHubProducerClient.from_connection_string(conn_str=eventHubConnString, eventhub_name=eventHubName)
-
-# def sendToEventsHub(jsonEvent, producer_events):
-# # eventString = jsonEvent
-#     event_data_batch = producer_events.create_batch() 
-#     event_data_batch.add(EventData(jsonEvent)) 
-#     producer_events.send_batch(event_data_batch)
