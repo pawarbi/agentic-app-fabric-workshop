@@ -1,32 +1,32 @@
-# Workshop: Building AI-Generated Financial Goal Trackers
+# Workshop: Building AI-Generated Financial Goal Trackers (Multi-Agent Architecture)
 
 ## 🎯 What You'll Build
 
-In this exercise, you'll extend an existing AI-powered banking application to support a new customer UI, **Financial Goal Trackers** - a new type of AI-generated widget that automatically tracks progress toward savings goals, debt payoff, and spending budgets.
+In this exercise, you'll extend an existing **multi-agent AI-powered banking application** to support a new customer UI feature: **Financial Goal Trackers** - a new type of AI-generated widget that automatically tracks progress toward savings goals, debt payoff, and spending budgets.
 
 By the end, users will be able to say things like:
 - *"I want to save $5,000 for a vacation by December"*
 - *"Help me track paying off my $3,000 credit card"*
 - *"Set a $400 monthly budget for restaurants"*
 
-And the AI will create dynamic, auto-updating goal trackers in their dashboard!
+And the AI will route the request to the appropriate agent (visualization agent) to create dynamic, auto-updating goal trackers in their dashboard!
 
 ---
 
 ## 📋 Prerequisites
 
-- The base banking application repository (with charts and simulators already working)
+- The multi-agent banking application repository
 - Basic knowledge of:
   - Python/Flask (backend)
   - TypeScript/React (frontend)
   - SQL queries
-  - How LangChain agents work
+  - How LangGraph multi-agent systems work
 
 ---
 
 ## 🏗️ Architecture Overview
 
-Before we start coding, let's understand how the existing system works:
+Before we start coding, let's understand how the **multi-agent system** works:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -40,28 +40,42 @@ Before we start coding, let's understand how the existing system works:
              │                     │
              ▼                     ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         BACKEND (Flask)                             │
+│                    MULTI-AGENT BACKEND (Flask + LangGraph)          │
 ├─────────────────────────────────────────────────────────────────────┤
-│  banking_app.py                                                     │
-│  ├── AI Agent (LangChain)                                          │
-│  │   └── Tools: get_accounts, transfer, create_widget, etc.        │
-│  ├── API Endpoints: /api/ai-widgets, /api/ai-widgets/<id>/refresh  │
-│  └── Database Models: User, Account, Transaction, AIWidget         │
+│  banking_app.py (API Entry Point)                                   │
+│  └── /api/chatbot → execute_trace() → multi_agent_banking.py       │
+├─────────────────────────────────────────────────────────────────────┤
+│  multi_agent_banking.py (StateGraph Workflow)                       │
+│  ├── coordinator_node → Routes to specialist agents                 │
+│  ├── account_agent_node → Account/transaction operations            │
+│  ├── support_agent_node → Knowledge base queries                    │
+│  └── visualization_agent_node → Widget/chart creation               │
+├─────────────────────────────────────────────────────────────────────┤
+│  agents.py (Agent Factories)                                        │
+│  ├── create_coordinator_agent()                                     │
+│  ├── create_account_management_agent(user_id)                       │
+│  ├── create_support_agent()                                         │
+│  └── create_visualization_agent(user_id, widget_instructions)       │
+├─────────────────────────────────────────────────────────────────────┤
+│  agent_tools.py (Tool Definitions)                                  │
+│  ├── get_account_tools(user_id)                                     │
+│  ├── get_support_tools()                                            │
+│  └── get_visualization_tools(user_id) ← WE'LL ADD GOAL TOOLS HERE   │
 ├─────────────────────────────────────────────────────────────────────┤
 │  widget_queries.py                                                  │
-│  └── Query functions that fetch fresh data for dynamic widgets     │
+│  └── Query functions for dynamic widget data                        │
 ├─────────────────────────────────────────────────────────────────────┤
 │  ai_widget_model.py                                                 │
-│  └── Database operations: create, update, delete widgets           │
+│  └── Database operations: create, update, delete widgets            │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Key Concepts:
+### Key Differences from Single-Agent Architecture:
 
-1. **Tools**: Functions the AI agent can call to perform actions
-2. **Widget Types**: Different kinds of visualizations (chart, simulation, goal)
-3. **Data Modes**: Static (snapshot) vs Dynamic (auto-refresh from database)
-4. **Query Config**: Instructions for fetching fresh data for dynamic widgets
+1. **Coordinator Agent**: Routes requests to specialist agents based on intent
+2. **Specialist Agents**: Each handles a specific domain (accounts, support, visualization)
+3. **Shared Tools**: Tools are organized by domain in `agent_tools.py`
+4. **State Management**: LangGraph `StateGraph` manages conversation flow between agents
 
 ---
 
@@ -71,10 +85,11 @@ Before we start coding, let's understand how the existing system works:
 |------|---------|-------------------|
 | 1 | `src/types/aiModule.ts` | TypeScript interfaces and type safety |
 | 2 | `backend/widget_queries.py` | Database queries and data aggregation |
-| 3 | `backend/banking_app.py` | LangChain tools and agent prompts |
-| 4 | `src/components/GoalWidgetRenderer.tsx` | React components and conditional rendering |
-| 5 | `src/components/AIModule.tsx` | Component composition and filtering |
-| 6 | `src/components/ChatBot.tsx` | User experience and feedback |
+| 3 | `backend/agent_tools.py` | Adding tools to the visualization agent |
+| 4 | `backend/agents.py` | Updating agent prompts for goal awareness |
+| 5 | `src/components/GoalWidgetRenderer.tsx` | React components and conditional rendering |
+| 6 | `src/components/AIModule.tsx` | Component composition and filtering |
+| 7 | `src/components/ChatBot.tsx` | User experience and feedback |
 
 ---
 
@@ -403,255 +418,328 @@ def query_goal_spending_limit(user_id: str, start_date: datetime, end_date: date
 
 ---
 
-# Step 3: Create the AI Agent Tool
+# Step 3: Add Goal Tools to the Visualization Agent
 
-## 📁 File: `backend/banking_app.py`
+## 📁 File: `backend/agent_tools.py`
 
-### 🎓 Concept: LangChain Tools
+### 🎓 Concept: Multi-Agent Tool Organization
 
-A **Tool** is a function that the AI agent can call. The agent:
-1. Reads the function's docstring to understand what it does
-2. Looks at the parameters to know what information it needs
-3. Decides when to call it based on user intent
+In the multi-agent architecture, tools are organized by domain in `agent_tools.py`. Each function returns a list of tools that get passed to the appropriate agent.
 
-The docstring is **critical** - it's how the AI learns to use your tool!
+The **visualization agent** handles all widget/chart creation, so we'll add our goal tools there.
 
 ### What to Add:
 
-#### 3.1 Create the Goal Tool Function
-
-Find the `create_simulation_widget_for_current_user` function and add this new function after it:
+Find the `get_visualization_tools` function and add the goal creation tool. Add this new tool function inside the `get_visualization_tools` function, after the existing tools:
 
 ```python
-# ============================================
-# GOAL WIDGET TOOL
-# ============================================
-
-def create_goal_widget_for_current_user(
-    title: str,
-    goal_type: str = "savings",
-    target_amount: float = 1000,
-    deadline: str = None,
-    description: str = "",
-    linked_account_name: str = None,
-    category: str = None,
-    original_debt: float = None,
-    spending_limit: float = None,
-    time_range: str = "this_month"
-) -> str:
-    """
-    Creates a financial goal tracker widget in the user's AI Module dashboard.
-    Use this tool when the user wants to set savings goals, debt payoff targets, or spending limits.
+def get_visualization_tools(user_id: str):
+    """Create visualization/widget management tools for a specific user"""
     
-    These widgets automatically update based on the user's account balances and transactions.
+    from ai_widget_model import create_widget, update_widget, delete_widget, get_widget_by_id, get_user_widgets
+    from widget_queries import execute_widget_query
     
-    Args:
-        title: Title for the goal (e.g., "Vacation Fund", "Pay Off Credit Card")
-        goal_type: Type of goal. Must be one of:
-            - 'savings': Track progress toward a savings target (e.g., vacation, emergency fund)
-            - 'debt_payoff': Track progress paying off debt (credit cards, loans)
-            - 'spending_limit': Track spending against a budget limit for a category
-        target_amount: The target amount to reach (for savings goals)
-        deadline: Optional deadline date in YYYY-MM-DD format (e.g., "2025-12-31")
-        description: Description of the goal
-        linked_account_name: Name of the account to track (e.g., "Vacation Savings")
-        category: For spending_limit goals, the category to track (e.g., "Restaurants")
-        original_debt: For debt_payoff goals, the original debt amount
-        spending_limit: For spending_limit goals, the monthly budget limit
-        time_range: For spending_limit goals: 'this_month', 'this_week', 'last_30_days'
+    # ... existing tools (create_ai_widget_tool, update_ai_widget_tool, etc.) ...
     
-    Returns:
-        JSON string with status and widget_id if successful
+    # ============================================
+    # GOAL WIDGET TOOL - ADD THIS
+    # ============================================
     
-    Examples:
-        - "Save $5000 for vacation by December" -> goal_type='savings', target_amount=5000
-        - "Pay off my $3000 credit card" -> goal_type='debt_payoff', original_debt=3000
-        - "Keep restaurant spending under $400/month" -> goal_type='spending_limit', spending_limit=400, category='Restaurants'
-    """
-    from ai_widget_model import create_widget
-    
-    try:
-        # Validate goal type
-        valid_types = ['savings', 'debt_payoff', 'spending_limit']
-        if goal_type not in valid_types:
+    @tool
+    def create_goal_widget_tool(
+        title: str,
+        goal_type: str = "savings",
+        target_amount: float = 1000,
+        deadline: str = None,
+        description: str = "",
+        linked_account_name: str = None,
+        category: str = None,
+        original_debt: float = None,
+        spending_limit: float = None,
+        time_range: str = "this_month"
+    ) -> str:
+        """
+        Creates a financial goal tracker widget in the user's AI Module dashboard.
+        Use this tool when the user wants to set savings goals, debt payoff targets, or spending limits.
+        
+        These widgets automatically update based on the user's account balances and transactions.
+        
+        Args:
+            title: Title for the goal (e.g., "Vacation Fund", "Pay Off Credit Card")
+            goal_type: Type of goal. Must be one of:
+                - 'savings': Track progress toward a savings target (e.g., vacation, emergency fund)
+                - 'debt_payoff': Track progress paying off debt (credit cards, loans)
+                - 'spending_limit': Track spending against a budget limit for a category
+            target_amount: The target amount to reach (for savings goals)
+            deadline: Optional deadline date in YYYY-MM-DD format (e.g., "2025-12-31")
+            description: Description of the goal
+            linked_account_name: Name of the account to track (e.g., "Vacation Savings")
+            category: For spending_limit goals, the category to track (e.g., "Restaurants")
+            original_debt: For debt_payoff goals, the original debt amount
+            spending_limit: For spending_limit goals, the monthly budget limit
+            time_range: For spending_limit goals: 'this_month', 'this_week', 'last_30_days'
+        
+        Returns:
+            JSON string with status and widget_id if successful
+        
+        Examples:
+            - "Save $5000 for vacation by December" -> goal_type='savings', target_amount=5000
+            - "Pay off my $3000 credit card" -> goal_type='debt_payoff', original_debt=3000
+            - "Keep restaurant spending under $400/month" -> goal_type='spending_limit', spending_limit=400, category='Restaurants'
+        """
+        try:
+            # Validate goal type
+            valid_types = ['savings', 'debt_payoff', 'spending_limit']
+            if goal_type not in valid_types:
+                return json.dumps({
+                    "status": "error",
+                    "message": f"Invalid goal_type. Must be one of: {', '.join(valid_types)}"
+                })
+            
+            # Build query config based on goal type
+            query_config = {
+                "filters": {}
+            }
+            
+            if goal_type == 'savings':
+                query_config["query_type"] = "goal_savings_progress"
+                query_config["filters"]["target_amount"] = target_amount
+                if linked_account_name:
+                    query_config["filters"]["linked_account_name"] = linked_account_name
+                    
+            elif goal_type == 'debt_payoff':
+                query_config["query_type"] = "goal_debt_payoff_progress"
+                query_config["filters"]["original_debt"] = original_debt or target_amount
+                if linked_account_name:
+                    query_config["filters"]["linked_account_name"] = linked_account_name
+                    
+            elif goal_type == 'spending_limit':
+                query_config["query_type"] = "goal_spending_limit"
+                query_config["time_range"] = time_range
+                query_config["filters"]["spending_limit"] = spending_limit or target_amount
+                if category:
+                    query_config["filters"]["category"] = category
+            
+            # Build goal config (stored in widget for display purposes)
+            goal_config = {
+                "goal_type": goal_type,
+                "target_amount": target_amount,
+                "deadline": deadline,
+                "linked_account_name": linked_account_name,
+                "category": category,
+                "original_debt": original_debt,
+                "spending_limit": spending_limit,
+            }
+            
+            # Build widget config
+            config = {
+                "goalConfig": goal_config,
+                "customProps": {}
+            }
+            
+            # Fetch initial data immediately
+            try:
+                with app.app_context():
+                    initial_data = execute_widget_query(query_config, user_id, db.session)
+                config["customProps"]["data"] = initial_data
+            except Exception as e:
+                print(f"[goal_widget] Error fetching initial data: {e}")
+                config["customProps"]["data"] = {}
+            
+            # Create the widget in database
+            with app.app_context():
+                widget = create_widget(
+                    user_id=user_id,
+                    title=title,
+                    description=description,
+                    widget_type="goal",          # 👈 New widget type!
+                    config=config,
+                    code=None,
+                    data_mode="dynamic",         # 👈 Goals are always dynamic
+                    query_config=query_config
+                )
+            
+            # Build a helpful response message
+            type_messages = {
+                'savings': f"I've created a savings goal tracker for '{title}'. It will automatically update as your account balance changes.",
+                'debt_payoff': f"I've created a debt payoff tracker for '{title}'. It will update as you pay down your balance.",
+                'spending_limit': f"I've created a spending tracker for '{title}'. It will monitor your {category or 'overall'} spending against your ${spending_limit or target_amount} limit.",
+            }
+            
+            return json.dumps({
+                "status": "success",
+                "message": type_messages.get(goal_type),
+                "widget_id": widget['id'],
+                "widget_type": "goal",
+                "goal_type": goal_type
+            })
+            
+        except Exception as e:
+            traceback.print_exc()
             return json.dumps({
                 "status": "error",
-                "message": f"Invalid goal_type. Must be one of: {', '.join(valid_types)}"
+                "message": f"Failed to create goal widget: {str(e)}"
             })
-        
-        # Build query config based on goal type
-        query_config = {
-            "filters": {}
-        }
-        
-        if goal_type == 'savings':
-            query_config["query_type"] = "goal_savings_progress"
-            query_config["filters"]["target_amount"] = target_amount
-            if linked_account_name:
-                query_config["filters"]["linked_account_name"] = linked_account_name
-                
-        elif goal_type == 'debt_payoff':
-            query_config["query_type"] = "goal_debt_payoff_progress"
-            query_config["filters"]["original_debt"] = original_debt or target_amount
-            if linked_account_name:
-                query_config["filters"]["linked_account_name"] = linked_account_name
-                
-        elif goal_type == 'spending_limit':
-            query_config["query_type"] = "goal_spending_limit"
-            query_config["time_range"] = time_range
-            query_config["filters"]["spending_limit"] = spending_limit or target_amount
-            if category:
-                query_config["filters"]["category"] = category
-        
-        # Build goal config (stored in widget for display purposes)
-        goal_config = {
-            "goal_type": goal_type,
-            "target_amount": target_amount,
-            "deadline": deadline,
-            "linked_account_name": linked_account_name,
-            "category": category,
-            "original_debt": original_debt,
-            "spending_limit": spending_limit,
-        }
-        
-        # Build widget config
-        config = {
-            "goalConfig": goal_config,
-            "customProps": {}
-        }
-        
-        # Fetch initial data immediately
-        try:
-            initial_data = execute_widget_query(query_config, user_id, db.session)
-            config["customProps"]["data"] = initial_data
-        except Exception as e:
-            print(f"[goal_widget] Error fetching initial data: {e}")
-            config["customProps"]["data"] = {}
-        
-        # Create the widget in database
-        widget = create_widget(
-            user_id=user_id,
-            title=title,
-            description=description,
-            widget_type="goal",          # 👈 New widget type!
-            config=config,
-            code=None,
-            data_mode="dynamic",         # 👈 Goals are always dynamic
-            query_config=query_config
-        )
-        
-        # Build a helpful response message
-        type_messages = {
-            'savings': f"I've created a savings goal tracker for '{title}'. It will automatically update as your account balance changes.",
-            'debt_payoff': f"I've created a debt payoff tracker for '{title}'. It will update as you pay down your balance.",
-            'spending_limit': f"I've created a spending tracker for '{title}'. It will monitor your {category or 'overall'} spending against your ${spending_limit or target_amount} limit.",
-        }
-        
-        return json.dumps({
-            "status": "success",
-            "message": type_messages.get(goal_type),
-            "widget_id": widget['id'],
-            "widget_type": "goal",
-            "goal_type": goal_type
-        })
-        
-    except Exception as e:
-        traceback.print_exc()
-        return json.dumps({
-            "status": "error",
-            "message": f"Failed to create goal widget: {str(e)}"
-        })
-```
-
-#### 3.2 Register the Tool with the Agent
-
-Find the `tools` list in the `chatbot()` function and add the new tool:
-
-```python
-tools = [
-    get_user_accounts_for_current_user,
-    get_transactions_summary_for_current_user,
-    search_support_documents, 
-    create_new_account_for_current_user,
-    transfer_money_for_current_user,
-    query_database,
-    create_ai_widget_for_current_user,
-    create_simulation_widget_for_current_user,
-    update_ai_widget_for_current_user,
-    create_goal_widget_for_current_user,  # 👈 ADD THIS
-]
-```
-
-#### 3.3 Update the Agent's System Prompt
-
-Find the `banking_agent = create_react_agent(...)` call and add goal instructions to the prompt. Add this section after the simulation instructions:
-
-```python
-## FINANCIAL GOAL WIDGETS ##
-When users want to track financial goals, use `create_goal_widget_for_current_user`:
-
-1. **savings**: For saving toward a target amount
-   - "Save $5000 for vacation" -> goal_type='savings', target_amount=5000
-   - Can link to specific account: linked_account_name='Vacation Savings'
-
-2. **debt_payoff**: For paying off debt
-   - "Help me pay off my $3000 credit card" -> goal_type='debt_payoff', original_debt=3000
-
-3. **spending_limit**: For budget tracking
-   - "Keep restaurant spending under $400" -> goal_type='spending_limit', spending_limit=400, category='Restaurants'
-
-**Key differences from simulators:**
-- Goals are ALWAYS dynamic (auto-update from real account data)
-- Simulators are for "what-if" planning with adjustable inputs
-- Goals track ACTUAL progress toward real financial targets
-```
-
-#### 3.4 Update the Response to Include Goal Type
-
-Find where the chatbot response is built (near the end of the `chatbot()` function) and update it:
-
-```python
-# Check if a goal was created
-goal_created = False
-goal_type = None
-for msg in final_messages:
-    if hasattr(msg, 'content') and isinstance(msg.content, str):
-        if '"widget_type": "goal"' in msg.content:
-            goal_created = True
-            # Extract goal_type from response
-            if '"goal_type": "savings"' in msg.content:
-                goal_type = 'savings'
-            elif '"goal_type": "debt_payoff"' in msg.content:
-                goal_type = 'debt_payoff'
-            elif '"goal_type": "spending_limit"' in msg.content:
-                goal_type = 'spending_limit'
-            break
-```
-Now, add the following lines in the same function:
-```python
-return jsonify({
-    "response": final_messages[-1].content,
-    "session_id": session_id,
-    "tools_used": [],
-    "widget_created": widget_created or goal_created,  # 👈 UPDATE
-    "widget_updated": widget_updated,
-    "widget_mode": widget_mode,
-    "widget_type": 'goal' if goal_created else widget_type,  # 👈 UPDATE
-    "simulation_type": simulation_type,
-    "goal_type": goal_type,  # 👈 ADD
-})
+    
+    # Return all tools including the new goal tool
+    return [
+        create_ai_widget_tool,
+        update_ai_widget_tool,
+        create_simulation_widget_tool,
+        list_user_widgets_tool,
+        delete_widget_tool,
+        create_goal_widget_tool,  # 👈 ADD THIS
+    ]
 ```
 
 ### 💡 Key Patterns to Notice
 
-1. **Docstrings are documentation for the AI**: Write them clearly with examples
-2. **Always return JSON strings from tools**: The agent parses these
-3. **Validate inputs early**: Fail fast with helpful error messages
-4. **Query data immediately**: Don't make users refresh manually
+1. **Tool decorator**: The `@tool` decorator from LangChain makes the function callable by the agent
+2. **Docstring importance**: The agent reads the docstring to understand when and how to use the tool
+3. **App context**: We need `with app.app_context()` for database operations in tools
+4. **User binding**: The `user_id` is captured in the closure when `get_visualization_tools(user_id)` is called
 
 ---
 
-# Step 4: Build the Goal Renderer Component
+# Step 4: Update the Visualization Agent Prompt
+
+## 📁 File: `backend/agents.py`
+
+### 🎓 Concept: Agent Prompts in Multi-Agent Systems
+
+Each specialist agent has its own prompt that defines its capabilities and behavior. The **visualization agent** needs to know about the new goal widget capability.
+
+### What to Change:
+
+Find the `create_visualization_agent` function and update its system prompt to include goal instructions:
+
+```python
+def create_visualization_agent(user_id: str, widget_instructions: str):
+    """Agent specialized in widget/visualization creation"""
+    llm = ai_client
+    tools = get_visualization_tools(user_id)
+    
+    system_prompt = f"""You are an AI visualization specialist helping user_id: {user_id}.
+
+## CRITICAL RULES ##
+1. **COMPLETE ANSWERS ONLY**: Provide full answer in FIRST response
+2. **USE TOOLS IMMEDIATELY**: Call tools without announcing
+3. **USER OWNERSHIP**: All widgets are user-specific
+
+## Your Capabilities ##
+
+### Data Visualizations (Charts)
+- **Static Charts**: One-time visualizations with fixed data
+- **Dynamic Charts**: Auto-refreshing charts from database
+- Supported types: bar, line, pie, area charts
+
+### Interactive Simulators
+- Loan/mortgage calculators
+- Savings projectors
+- Budget planners
+
+### 🎯 Financial Goal Trackers (NEW!)
+Use `create_goal_widget_tool` when users want to:
+- **Savings Goals**: "Save $5000 for vacation", "Build emergency fund"
+- **Debt Payoff**: "Pay off credit card", "Track loan repayment"
+- **Spending Budgets**: "Keep restaurant spending under $400"
+
+## CHOOSING THE RIGHT TOOL ##
+
+| User Request | Tool to Use |
+|--------------|-------------|
+| "Show me a chart of spending" | `create_ai_widget_tool` |
+| "Create a loan calculator" | `create_simulation_widget_tool` |
+| "Help me save $5000" | `create_goal_widget_tool` |
+| "Track paying off my debt" | `create_goal_widget_tool` |
+| "Set a budget for restaurants" | `create_goal_widget_tool` |
+
+## GOAL WIDGET EXAMPLES ##
+
+**Savings Goal:**
+create_goal_widget_tool(
+    title="Vacation Fund",
+    goal_type="savings",
+    target_amount=5000,
+    deadline="2025-12-31",
+    linked_account_name="Vacation Savings"
+)
+
+**Debt Payoff Goal:**
+create_goal_widget_tool(
+    title="Pay Off Credit Card",
+    goal_type="debt_payoff",
+    original_debt=3000,
+    linked_account_name="Main Credit"
+)
+
+**Spending Budget:**
+create_goal_widget_tool(
+    title="Restaurant Budget",
+    goal_type="spending_limit",
+    spending_limit=400,
+    category="Restaurants",
+    time_range="this_month"
+)
+
+## When to Use DYNAMIC vs STATIC Charts ##
+
+✅ Use **data_mode='dynamic'** when:
+- User wants "current", "latest", or "recent" data
+- Time-based queries: "last 6 months", "this year"
+- Data that should refresh: account balances, spending categories
+
+✅ Use **data_mode='static'** when:
+- User provides specific data points
+- Creating comparison charts with custom data
+- Simulation widgets (always static)
+
+**Note:** Goal widgets are ALWAYS dynamic - they auto-update from real account data!
+
+{widget_instructions}
+
+## Response Format ##
+- Be conversational and helpful
+- Tell user they can view widgets in "AI Module" tab
+- For goal widgets, mention they update automatically
+- For dynamic widgets, mention refresh button
+"""
+    
+    return create_react_agent(llm, tools, prompt=system_prompt, checkpointer=MemorySaver())
+```
+
+### Also Update the Coordinator Agent
+
+The coordinator needs to know that goal-related requests should go to the visualization agent. Find `create_coordinator_agent` and ensure the routing prompt includes goal keywords:
+
+```python
+def create_coordinator_agent():
+    """Agent that routes requests (not used in keyword-based routing)"""
+    llm = ai_client
+    
+    routing_prompt = """You are a routing coordinator. Analyze the request and respond with ONLY the agent name.
+
+## Routing Rules ##
+- Account management/money/transaction/balance/spending queries → respond: "account_agent"
+- Policy questions/general questions/support → respond: "support_agent"
+- Visualization/chart/widget/simulation/GOAL/BUDGET/SAVINGS TRACKER → respond: "visualization_agent"
+
+## Goal-Related Keywords → visualization_agent ##
+- "save for", "savings goal", "save $X"
+- "pay off", "debt payoff", "pay down"
+- "budget", "spending limit", "track spending"
+- "goal tracker", "financial goal"
+
+## Output Format ##
+Respond with ONLY: "account_agent" or "support_agent" or "visualization_agent"
+Do NOT add any other text, explanation, or formatting."""
+    
+    return create_react_agent(llm, [], prompt=routing_prompt, checkpointer=MemorySaver())
+```
+
+---
+
+# Step 5: Build the Goal Renderer Component
 
 ## 📁 File: `src/components/GoalWidgetRenderer.tsx` (NEW FILE)
 
@@ -1005,7 +1093,7 @@ export default GoalWidgetRenderer;
 
 ---
 
-# Step 5: Integrate Goals into the AI Module
+# Step 6: Integrate Goals into the AI Module
 
 ## 📁 File: `src/components/AIModule.tsx`
 
@@ -1019,7 +1107,7 @@ Now we need to:
 
 ### What to Change:
 
-#### 5.1 Add Imports
+#### 6.1 Add Imports
 
 At the top of the file, add:
 
@@ -1028,7 +1116,7 @@ import GoalWidgetRenderer from './GoalWidgetRenderer';
 import { Target } from 'lucide-react';  // Add to existing lucide imports
 ```
 
-#### 5.2 Update Filter State
+#### 6.2 Update Filter State
 
 Change the filter state type:
 
@@ -1040,7 +1128,7 @@ const [activeFilter, setActiveFilter] = useState<'all' | 'charts' | 'simulations
 const [activeFilter, setActiveFilter] = useState<'all' | 'charts' | 'simulations' | 'goals'>('all');
 ```
 
-#### 5.3 Update Filter Logic
+#### 6.3 Update Filter Logic
 
 ```typescript
 // Update filteredWidgets
@@ -1058,7 +1146,7 @@ const simulationCount = widgets.filter(w => w.widget_type === 'simulation').leng
 const goalCount = widgets.filter(w => w.widget_type === 'goal').length;  // 👈 ADD
 ```
 
-#### 5.4 Add Goals Filter Tab
+#### 6.4 Add Goals Filter Tab
 
 In the filter tabs section, add a new button:
 
@@ -1076,34 +1164,33 @@ In the filter tabs section, add a new button:
 </button>
 ```
 
-#### 5.5 Update Widget Card Styling
+#### 6.5 Update Widget Card Styling
 
 In the widget rendering loop, add goal detection and styling:
 
 ```typescript
 const isRefreshing = refreshingWidgets.has(widget.id);
-// Add detection there
-const isGoal = widget.widget_type === 'goal';
+const isGoal = widget.widget_type === 'goal';  // 👈 ADD
 
 // Update border color
 className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all hover:shadow-md ${
   expandedWidget === widget.id ? 'col-span-full' : ''
-} ${isSimulation ? 'border-amber-200' : isGoal ? 'border-green-200' : 'border-gray-200'}`}  // 👈 Update here
+} ${isSimulation ? 'border-amber-200' : isGoal ? 'border-green-200' : 'border-gray-200'}`}
 
 // Update header gradient
 <div className={`px-6 py-4 border-b flex items-center justify-between ${
   isSimulation 
     ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-100' 
-    : isGoal // 👈 ADD
-      ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-100' // 👈 ADD
-      : 'bg-gradient-to-r from-gray-50 to-white border-gray-100' // 👈 ADD
+    : isGoal
+      ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-100'
+      : 'bg-gradient-to-r from-gray-50 to-white border-gray-100'
 }`}>
 
 // Update icon
 {isSimulation ? (
   <Sliders className="h-4 w-4 text-amber-600" />
 ) : isGoal ? (
-  <Target className="h-4 w-4 text-green-600" />  // 👈 ADD
+  <Target className="h-4 w-4 text-green-600" />
 ) : (
   <SparklesIcon size={16} />
 )}
@@ -1114,21 +1201,20 @@ className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all 
     <Sliders className="h-3 w-3" />
     Interactive
   </span>
-//  New ADD
 ) : isGoal ? (
   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-700 border border-green-200">
     <Target className="h-3 w-3" />
     Goal
   </span>
-//  New END
 ) : isDynamic ? (
   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-50 text-cyan-700 border border-cyan-200">
     <Zap className="h-3 w-3" />
     Live
-</span>
+  </span>
+) : null}
 ```
 
-#### 5.6 Update Widget Content Height and Renderer
+#### 6.6 Update Widget Content Height and Renderer
 
 ```typescript
 // Update height
@@ -1137,16 +1223,16 @@ className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all 
     ? 'h-[600px]' 
     : isSimulation 
       ? 'h-[480px]' 
-      : isGoal.  // 👈 ADD
-        ? 'h-[320px]'  // 👈 ADD
+      : isGoal
+        ? 'h-[320px]'
         : 'h-80'
 }`}>
 
 // Update renderer routing
 {isSimulation ? (
   <SimulationWidgetRenderer widget={widget} />
-) : isGoal ? ( // 👈 ADD
-  <GoalWidgetRenderer widget={widget} />  // 👈 ADD
+) : isGoal ? (
+  <GoalWidgetRenderer widget={widget} />
 ) : (
   <AIWidgetRenderer 
     widget={widget} 
@@ -1155,13 +1241,13 @@ className={`bg-white rounded-xl shadow-sm border overflow-hidden transition-all 
 )}
 ```
 
-#### 5.7 Enable Refresh for Goals
+#### 6.7 Enable Refresh for Goals
 
 Goals are dynamic, so they need the refresh button. Update the condition:
 
 ```typescript
 {/* Refresh button for dynamic widgets AND goals */}
-{(isDynamic || isGoal) && !isSimulation && ( // 👈 Update here
+{(isDynamic || isGoal) && !isSimulation && (
   <button
     onClick={() => handleRefreshWidget(widget.id)}
     // ... rest stays the same
@@ -1170,7 +1256,7 @@ Goals are dynamic, so they need the refresh button. Update the condition:
 
 ---
 
-# Step 6: Update the Chat Interface
+# Step 7: Update the Chat Interface
 
 ## 📁 File: `src/components/ChatBot.tsx`
 
@@ -1182,8 +1268,14 @@ Users need to know when their goal was created successfully. We'll:
 3. Handle goal editing context
 
 ### What to Change:
+#### 7.1 Import lucide-react components
 
-#### 6.1 Update Message Interface
+At the top of the file, update:
+```typescript
+import { Bot, Send, MessageSquare, /* other icons */, PiggyBank, CreditCard,  } from 'lucide-react';
+```
+
+#### 7.2 Update Message Interface
 
 ```typescript
 interface Message {
@@ -1193,9 +1285,9 @@ interface Message {
 }
 ```
 
-#### 6.2 Add Goal Icon Helper
+#### 7.3 Add Goal Icon Helper
 
-After ***getSimulationIcon***, add:
+After existing icon helpers (getSimulationIcon), add:
 
 ```typescript
 const getGoalIcon = (goalType: string | undefined) => {
@@ -1212,7 +1304,7 @@ const getGoalIcon = (goalType: string | undefined) => {
 };
 ```
 
-#### 6.3 Update Quick Suggestions
+#### 7.4 Update Quick Suggestions
 
 ```typescript
 const quickSuggestions = activeTab === 'ai-module' ? [
@@ -1225,58 +1317,65 @@ const quickSuggestions = activeTab === 'ai-module' ? [
 ];
 ```
 
-#### 6.4 Add Goal Creation Indicator
+#### 7.5 Add Goal Creation Indicator
 
 In the message rendering, add after the simulation indicator:
 
 ```typescript
-<div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-  {messages.map((message) => (
-    <div
-      key={message.id}
-      className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-    >
-      <div
-        className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-          message.role === 'user'
-            ? 'bg-blue-600 text-white rounded-br-md'
-            : 'bg-white text-gray-800 shadow-sm border border-gray-100 rounded-bl-md'
-        }`}
-      >
-        <div className="flex items-start gap-2">
-          {message.role === 'assistant' && (
-            <Bot className="h-4 w-4 mt-0.5 text-blue-600 flex-shrink-0" />
-          )}
-          <div className="flex-1">
-            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-
-          {/* Goal creation indicator (NEW) */}
-          {message.widgetCreated && message.widgetType === 'goal' && (
-            <div className={`mt-2 p-2 rounded-lg text-xs ${getGoalIcon(message.goalType).bg} border ${getGoalIcon(message.goalType).border}`}>
-              <div className="flex items-center gap-1.5">
-                <Target className={`h-3.5 w-3.5 ${getGoalIcon(message.goalType).color}`} />
-                <span className={`font-medium ${getGoalIcon(message.goalType).color}`}>
-                  🎯 {getGoalIcon(message.goalType).label} created!
-                </span>
-              </div>
-              <p className="mt-1 text-gray-600">
-                Check the AI Module tab to track your progress. It updates automatically!
-              </p>
-            </div>
-          )}
-          // ... rest stays the same
+{/* Goal creation indicator */}
+{message.widgetCreated && message.widgetType === 'goal' && (
+  <div className={`mt-2 p-2 rounded-lg text-xs ${getGoalIcon(message.goalType).bg} border ${getGoalIcon(message.goalType).border}`}>
+    <div className="flex items-center gap-1.5">
+      <Target className={`h-3.5 w-3.5 ${getGoalIcon(message.goalType).color}`} />
+      <span className={`font-medium ${getGoalIcon(message.goalType).color}`}>
+        🎯 {getGoalIcon(message.goalType).label} created!
+      </span>
+    </div>
+    <p className="mt-1 text-gray-600">
+      Check the AI Module tab to track your progress. It updates automatically!
+    </p>
+  </div>
+)}
 ```
 
 ---
 
 # 🧪 Testing Your Implementation
 
-## Test Cases to Verify Examples (check with something that makes sense based on the values of your demo)
+## Test Cases to Verify
 
-### Savings Goal
+### Test 1: Savings Goal
 ```
-User: "I want to save $10000 for a vacation by December 2025 in my Hundred Checking account"
-Expected: Creates a savings goal with target $5000 and deadline
+User: "I want to save $10000 for a vacation by February 2026"
+Expected: 
+- Coordinator routes to visualization_agent
+- Goal widget created with savings type
+- Widget appears in AI Module with green styling
+```
+
+### Test 2: Debt Payoff Goal
+```
+User: "Help me track paying off my $3000 credit card"
+Expected:
+- Coordinator routes to visualization_agent
+- Goal widget created with debt_payoff type
+- Widget shows progress toward paying off debt
+```
+
+### Test 3: Spending Budget
+```
+User: "Set a $400 monthly budget for restaurants"
+Expected:
+- Coordinator routes to visualization_agent
+- Goal widget created with spending_limit type
+- Widget shows spending vs budget with warning when close
+```
+
+### Test 4: Goal Refresh
+```
+Action 1: Create and Execute a new "Restaurant" Transaction of $50 for the account selected
+Action 2: Click refresh button on a goal widget
+Expected: Widget data updates from current account balances
 ```
 
 ---
@@ -1285,12 +1384,25 @@ Expected: Creates a savings goal with target $5000 and deadline
 
 | Concept | Where Applied |
 |---------|---------------|
+| **Multi-Agent Architecture** | Understanding coordinator → specialist routing |
 | **TypeScript Interfaces** | Defining data shapes for type safety |
 | **Data Access Layer** | Separating database queries from business logic |
-| **LangChain Tools** | Teaching AI agents to perform actions |
+| **LangChain Tools** | Adding tools to specialist agents |
+| **Agent Prompts** | Teaching agents about new capabilities |
 | **React Component Patterns** | Conditional rendering, composition |
 | **User Experience** | Feedback, celebrations, warnings |
-| **Full-Stack Integration** | Connecting frontend → backend → database |
+
+---
+
+# 🔄 Key Differences from Single-Agent Version
+
+| Aspect | Single-Agent | Multi-Agent |
+|--------|--------------|-------------|
+| **Tool Location** | Inline in `banking_app.py` | Organized in `agent_tools.py` |
+| **Agent Configuration** | Single prompt | Coordinator + specialist prompts |
+| **Routing** | N/A | Coordinator decides which agent handles request |
+| **State Management** | Simple memory | LangGraph StateGraph |
+| **Tool Binding** | Direct function | `@tool` decorator with closure |
 
 ---
 
@@ -1303,3 +1415,20 @@ Want to keep building? Try adding:
 3. **Shared Goals**: Let users collaborate on family savings goals
 4. **Goal Templates**: Pre-built goals like "Emergency Fund (3 months expenses)"
 5. **AI Insights**: "At your current savings rate, you'll reach your goal in X months"
+6. **Goal Agent**: Create a dedicated specialist agent for complex goal management
+
+---
+
+# 📁 File Summary
+
+Here's a quick reference of all files modified or created:
+
+| File | Action | Purpose |
+|------|--------|---------|
+| `src/types/aiModule.ts` | Modified | Add TypeScript interfaces |
+| `backend/widget_queries.py` | Modified | Add goal query functions |
+| `backend/agent_tools.py` | Modified | Add goal creation tool |
+| `backend/agents.py` | Modified | Update agent prompts |
+| `src/components/GoalWidgetRenderer.tsx` | Created | Goal visualization component |
+| `src/components/AIModule.tsx` | Modified | Integrate goal widgets |
+| `src/components/ChatBot.tsx` | Modified | User feedback for goals |
