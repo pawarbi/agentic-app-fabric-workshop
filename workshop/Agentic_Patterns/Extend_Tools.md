@@ -115,7 +115,7 @@ def find_largest_transaction_tool(
 
 ```
 
-Now, add this new tool to collection of accoount agent tools, by adding **find_largest_transaction_tool** to return list of "get_account_tools" function by modifying the return "list" as below:
+Now, add this new tool to collection of account agent tools, by adding **find_largest_transaction_tool** to the return **list** of "get_account_tools" function by modifying the return logic as below:
 
 ```python
     return [
@@ -129,4 +129,4 @@ Now, add this new tool to collection of accoount agent tools, by adding **find_l
 
 ```
 
-Save your changes and run the app to test. Ask the same question for the same user again. Having the trace_id for the two runs, comapre execution time (in agent_traces table) and total token usage for each trace (via tool_usage table).
+Save your changes and run the app to test. Ask the same question for the same user again. Having the **trace_id** for the two runs, you can now compare the execution time (in agent_traces table) and total token usage (via tool_usage table) between the two traces.
