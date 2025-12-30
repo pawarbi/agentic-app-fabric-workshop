@@ -18,7 +18,15 @@ There are two variables in .env file that you need to populate to successfully s
 
 In your Fabric workspace, open your Eventstream:
 
-![Alt text](./assets/1.png)
+![eventstream](../../assets/1.png)
+
+Click on "CustomEndpoint" block, then click on "SAS Key Authentication" tab as shown below: 
+
+![customendpoint](../../assets/2.png)
+
+Lastly, copy the value shown for "Event hub name" and paste it in the .env file as the **FABRIC_EVENT_HUB_NAME** value. Then, first click on the eye button near "Conntection string-primary key", then copy the value. Paste this as the value for **FABRIC_EVENT_HUB_CONNECTION_STRING** in your .env file.
+
+![customendpoint](../../assets/3_blurred.png)
 
 
 **Azure OpenAI Services**
