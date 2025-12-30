@@ -28,7 +28,7 @@ In this hands-on workshop, you will learn about:
 #### Langgraph Agentic Patterns 
 - [Single Agent Example](workshop/Agentic_Patterns/banking_agent_workshop.ipynb)
 - [Multi Agent Example](workshop/Agentic_Patterns/multi_agent_banking_workshop.ipynb)
-- [Add New Tool For Agents in Banking App]
+- [Add New Tool For Agents in Banking App](workshop/Agentic_Patterns/Extend_Tools.md)
 - [Add a New Agent for Banking App]
 
 #### Streaming and RTI in Fabric
