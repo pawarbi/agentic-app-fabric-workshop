@@ -6,7 +6,7 @@ First, run the app, choose a user and ask this question: **what was my largest t
 
 Take note of the user and the trace_id number. We will repeat this question with the same user later. 
 
-Now let's follow the same pattern and add a new tool to one of the agents in the current banking application. We will show an example below, but feel free to define and add your own customized too to the agent of your choice. 
+Now let's follow the same pattern and add a new tool to one of the agents in the current banking application. We will show an example below, but feel free to define and add your own customized tool to the agent of your choice. 
 
 Add below code block to the file called **agent_tools.py**:
 
