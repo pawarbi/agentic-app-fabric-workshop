@@ -29,12 +29,11 @@ In this hands-on workshop, you will learn about:
 - [Single Agent Example](workshop/Agentic_Patterns/banking_agent_workshop.ipynb)
 - [Multi Agent Example](workshop/Agentic_Patterns/multi_agent_banking_workshop.ipynb)
 - [Add New Tool For Agents in Banking App](workshop/Agentic_Patterns/Extend_Tools.md)
-- [Add a New Agent for Banking App]
+- [Add a New Agent for Banking App](workshop/Agentic_Patterns/Add_Agent.md)
 
 #### Streaming and RTI in Fabric
 
-- [Wire up EventHouse]
-- [Test Real Time Alerting by Simulating Severe Content]
+- [Set up EventHouse and Test Real Time Alerting](workshop/RTI/SettingUp_eventHouse.md)
 
 
 
