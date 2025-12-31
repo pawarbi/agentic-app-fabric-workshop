@@ -35,5 +35,9 @@ In this hands-on workshop, you will learn about:
 
 - [Set up EventHouse and Test Real Time Alerting](workshop/RTI/SettingUp_eventHouse.md)
 
+#### Generative UI for a customized user experience
+
+- [Build AI-Generated Financial Goal Trackers](workshop/GenUI_Component/Exercise_GenUI_Component_MultiAgent.md)
+
 
 
