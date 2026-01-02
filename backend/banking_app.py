@@ -687,7 +687,7 @@ def refresh_ai_widget(widget_id):
 
 from multi_agent_banking import create_multi_agent_banking_system, execute_trace
 from chat_data_model import prep_multi_agent_log_load, handle_content_safety_error
-
+import threading
 @app.route('/api/chatbot', methods=['POST'])
 def chatbot():
     """Main chatbot endpoint"""
@@ -812,8 +812,6 @@ def chatbot():
             trace_events, result= execute_trace(banking_system, initial_state, thread_config)
             end_time = time.time()
             trace_duration = int((end_time - trace_start_time) * 1000)
-            analytics_call_start = time.time()
-            
 
             analytics_data = prep_multi_agent_log_load(trace_events=trace_events,
                                                         session_id=session_id,
@@ -828,12 +826,21 @@ def chatbot():
             if(user_message in sensitive_list):
                 flag = True
                 result = res_dict["content"]  
-                
-            _= stream_load(producer_events=producer_events, result_dict=analytics_data,
-                           user_msg = user_message)
-            _= call_analytics_service("chat/log-multi-agent-trace", data=analytics_data)
-
-            analytics_call_duration = int((time.time() - analytics_call_start) * 1000)
+                    # Send analytics in background thread - DON'T WAIT
+            def log_analytics_async():
+                try:
+                    stream_load(producer_events=producer_events, 
+                            result_dict=analytics_data,
+                            user_msg=user_message)
+                    call_analytics_service("chat/log-multi-agent-trace", 
+                                        data=analytics_data)
+                except Exception as e:
+                    print(f"[Analytics] Background logging failed: {e}")
+            
+            # Start background thread
+            analytics_thread = threading.Thread(target=log_analytics_async, daemon=True)
+            analytics_thread.start()
+                    
         # handling extremely sensitive content error that caused llm provider to block the response
         except Exception as e:
             end_time = time.time()
@@ -853,24 +860,23 @@ def chatbot():
                 else:
                     simulate_error = simulate_safety_error(jailbreak_detected=True, jailbreak_filtered=True)
                 e=str(simulate_error.message)
-                print(e)
 
-            analytics_call_start = time.time()
-             
             result_dict = handle_content_safety_error(trace_id=trace_id, session_id=session_id, user_id=user_id, error = e, user_message=user_message)
-            _=stream_load(producer_events=producer_events, result_dict=result_dict, user_msg = user_message, failed_response=True)
             result = result_dict["message"].get("content")
-            _=call_analytics_service("chat/log-content-safety-violation", data=result_dict)
-            analytics_call_duration = int((time.time() - analytics_call_start) * 1000)
-        process_start = time.time()
+            def log_analytics_async():
+                try:
+                    stream_load(producer_events=producer_events, 
+                            result_dict=analytics_data,
+                            user_msg=user_message)
+                    call_analytics_service("chat/log-multi-agent-trace", 
+                                        data=analytics_data)
+                except Exception as e:
+                    print(f"[Analytics] Background logging failed: {e}")
+        
+            # Start background thread
+            analytics_thread = threading.Thread(target=log_analytics_async, daemon=True)
+            analytics_thread.start()
 
-        process_duration = time.time() - process_start
-        print(f"[chatbot] Processed agent response in {process_duration:.2f}s")
-
-        print(
-            f"[chatbot] analytics log-trace duration: "
-            f"{analytics_call_duration:.2f}s"
-        )
 
         total_duration = time.time() - request_start
         print(f"[chatbot] Total /api/chatbot request duration: {total_duration:.2f}s")
