@@ -1,6 +1,6 @@
 # Testing Real-time Alerting
 
-During the app set up process, we already deployed all required Fabric artifacts, including the required artifacts to enable streaming real-time app usage log. 
+During the app set up process, we already deployed all required Fabric artifacts, including the ones to enable streaming and storing real-time app usage logs. 
 
 While almost all is in place, there are still a few steps remaining to fully set up the end to end process of streaming data and enabling the real-time dashboard for monitoring purposes. 
 
@@ -8,39 +8,55 @@ While almost all is in place, there are still a few steps remaining to fully set
 
 ### Connect your Eventhouse database to the Eventstream
 
-1. Ensure you have done at least one test run with the application. This enables the streaming pipeline to recognize and map the schema of incoming streaming data.
+1. **Ensure you have done at least one test run with the application.** This enables the streaming pipeline to recognize and map the schema of incoming streaming data.
 2. In your Fabric workspace, open your Eventstream artifact. 
 
     ![eventstream](../../assets/1.png)
 3. Click on agentic_stream object, click on refresh and ensure there is at least one data entry:
-    ![eventstream](../../assets/4_test_run_event.png)
-4. Now, go back to your workspace, and open the KQL Database object (app_events). On the left side, under KQL databases -> app_events -> Tables there should be a table called agentic_events. Click on "..." -> Get data -> Eventstream -> Existing Eventstream:
+    ![eventstream](../../assets/eventhub_1.png)
+As you can see in above image, EventHouse is shown as "Unconfigured". Click on "Configure", and follow steps as shown in below images:
 
-    ![eventstream](../../assets/5.png)
-5. Ensure you choose your current workspace and choose the Eventstream and Stream values as shown in below image. Data connection name can be whatever you wish. Click on Next.
+    ![eventstream](../../assets/conf_1.png)
+    ![eventstream](../../assets/conf2.png)
+    ![eventstream](../../assets/conf3.png)
 
-    ![eventstream](../../assets/6.png)
+4. After Clicking in "Close" in the last step, you willbe back at your EventStream pipeline view. Click on "Edit" on upper right side, then click on "Publish".
 
+    ![eventstream](../../assets/conf4.png)
+    ![eventstream](../../assets/conf5.png)
 
-6. At this step, the available data entry will be inspected and schema will be shown. Choose "JSON" for the format field so that the process takes less time.
+5. Now to test, run the app and perform a test chat. Then go back to your workspace and open the "app_events" KQL database (middle block). It may take a few minutes and do some refresh for the first time after publishing the changes to start seeing the event data in your database, but it should look like below:
+    ![eventstream](../../assets/kql1.png)
 
-    ![eventstream](../../assets/8.png)
-
-7. Click on "Finish". Your KQL database is now successfully wired to get and store data from your EventStream. 
-
-
-
-### Query data and add views to the Real-Time Dashboard
-
-1. Go back to your workspace view, and open QueryWorkBench.
+6. Go back to your workspace view, and now open the "QueryWorkBench" block. We will be using the workbench to write queries for adding to the Real-Time Dashboard. As you can see there are already some example query blocks that you can choose and run. 
     ![eventstream](../../assets/workbench.png)
+    ![eventstream](../../assets/query1.png)
 
-2. On the left hand side, click on "..." for agent_events table and click on "Refresh database". This is to ensure you are getting the latest data.
 
-    ![eventstream](../../assets/9.png)
+### Add content safety views to the Real-Time Dashboard
 
-3. As you can see there are already some example query blocks that you can choose and run. You can click on any of them and add it as a view to the existing ContentSafetyMonitoring dashboard. 
+In this example exercise, we will be adding the queries to the existing "ContentSafetyMonitoring" dashboard. Below is the initial view you already have which has two blocks, one showing all events per categpory, and the other showing contents that got blocked due to self_harm filter:
 
-    ![eventstream](../../assets/10.png)
+![eventstream](../../assets/dash1.png)
 
-    You can also write new queries, and add them to the existing dashboard or create a new one.
+Adding new views to dashboard is easy. Just click on any query block in your QueryWorkBench, and add it as a view to the existing ContentSafetyMonitoring dashboard as shown below: 
+
+![eventstream](../../assets/dash2.png)
+
+![eventstream](../../assets/dash3.png)
+
+When a new view is added, it will look something like below:
+
+![eventstream](../../assets/dash4.png)
+
+
+You can edit the name, visualization type, etc. by going to the edit mode, make your changes and then apply them:
+
+![eventstream](../../assets/dash5.png)
+
+![eventstream](../../assets/dash6.png)
+
+
+Add all queries to the dashboard. Also feel free to write new queries for other scenarios. 
+
+In the application, we have built in an easy way to mimic sensitive content message log without actually getting blocked by the OpenAI api. To test, when chatting you can simply reply with your desired filter category (ex. violence, jailbreak, etc.).
