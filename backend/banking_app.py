@@ -826,7 +826,7 @@ def chatbot():
             if(user_message in sensitive_list):
                 flag = True
                 result = res_dict["content"]  
-                    # Send analytics in background thread - DON'T WAIT
+            # Send analytics in background thread - DON'T WAIT
             def log_analytics_async():
                 try:
                     stream_load(producer_events=producer_events, 
@@ -860,16 +860,15 @@ def chatbot():
                 else:
                     simulate_error = simulate_safety_error(jailbreak_detected=True, jailbreak_filtered=True)
                 e=str(simulate_error.message)
-
             result_dict = handle_content_safety_error(trace_id=trace_id, session_id=session_id, user_id=user_id, error = e, user_message=user_message)
             result = result_dict["message"].get("content")
             def log_analytics_async():
                 try:
                     stream_load(producer_events=producer_events, 
-                            result_dict=analytics_data,
-                            user_msg=user_message)
-                    call_analytics_service("chat/log-multi-agent-trace", 
-                                        data=analytics_data)
+                            result_dict=result_dict,
+                            user_msg=user_message, failed_response=True)
+                    call_analytics_service("chat/log-content-safety-violation", 
+                                        data=result_dict)
                 except Exception as e:
                     print(f"[Analytics] Background logging failed: {e}")
         
