@@ -22,7 +22,7 @@ In your Fabric workspace, open your Eventstream:
 
 Click on "CustomEndpoint" block, then click on "SAS Key Authentication" tab as shown below: 
 
-![customendpoint](../../assets/2.png)
+![customendpoint](../../assets/sas_key.png)
 
 Lastly, copy the value shown for "Event hub name" and paste it in the .env file as the **FABRIC_EVENT_HUB_NAME** value. Then, first click on the eye button near "Connection string-primary key", then copy the value. Paste this as the value for **FABRIC_EVENT_HUB_CONNECTION_STRING** in your .env file.
 
