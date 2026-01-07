@@ -19,6 +19,9 @@ In this hands-on workshop, you will learn about:
 ## Table of Content
 
 ### Banking App Deployment and Set up
+**Important Note: Are you on a Mac?** ->  If yes, to be able to run the app, you must first follow the steps here: [macOS Local Deployment Guide](workshop/App_SetUp/macos-deployment-changes.md)
+
+For **Windows** users, follow below steps:
 - [Deploy Fabric Workloads](workshop/App_SetUp/Fabric_Workloads.md)
 - [Run App Locally](workshop/App_SetUp/Run_App_Locally.md)
 
