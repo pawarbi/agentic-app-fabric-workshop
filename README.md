@@ -12,7 +12,9 @@ In this hands-on workshop, you will learn about:
   - Streaming and Real-time alerting
   - Data Agent
 - Building a common data model for AI
-
+- Creating a Fabric data agent
+  - Preparing semantic model for data agent consumption
+  - Conguring & evaluating data agent
 
 ## Table of Content
 
@@ -38,6 +40,12 @@ In this hands-on workshop, you will learn about:
 #### Generative UI for a customized user experience
 
 - [Build AI-Generated Financial Goal Trackers](workshop/GenUI_Component/Exercise_GenUI_Component_MultiAgent.md)
+
+#### Creating Fabric Data Agent
+
+- [Fabric Data Agent](workshop/Data_Agent/data_agent_setup_instructions.pdf)
+- [Semantic model checklist for Data Agent](workshop/Data_Agent/semantic_model_dataagent_checklist.md)
+- [Data Agent Utilities notebook](workshop/Data_Agent/dataagent_utilities.ipynb)
 
 
 
