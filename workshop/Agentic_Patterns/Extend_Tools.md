@@ -2,7 +2,7 @@
 
 In the previous exercises, we showed how to create an example multi-agent system in which each agent was equipped with its own specialized tools. 
 
-First, run the app, choose a user and ask this question: **what was my largest transaction?**
+First, run the app, choose a user and ask this question: **what was my largest payment transaction?**
 
 Take note of the user and the trace_id number. We will repeat this question with the same user later. 
 
